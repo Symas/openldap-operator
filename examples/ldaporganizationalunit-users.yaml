@@ -1,0 +1,9 @@
+apiVersion: openldap.gpu-ninja.com/v1alpha1
+kind: LDAPOrganizationalUnit
+metadata:
+  name: users
+spec:
+  serverRef:
+    name: demo
+  name: users
+  description: "Acme Widgets Inc. Users"

@@ -1,0 +1,14 @@
+apiVersion: openldap.gpu-ninja.com/v1alpha1
+kind: LDAPServer
+metadata:
+  name: demo
+spec:
+  image: ghcr.io/gpu-ninja/openldap-operator/openldap:v0.1.1
+  domain: example.com
+  organization: "Acme Widgets Inc."
+  adminPasswordSecretRef:
+    name: admin-password
+  certificateSecretRef:
+    name: demo-tls
+  storage:
+    size: 1Gi

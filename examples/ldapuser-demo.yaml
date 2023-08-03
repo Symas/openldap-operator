@@ -1,0 +1,16 @@
+apiVersion: openldap.gpu-ninja.com/v1alpha1
+kind: LDAPUser
+metadata:
+  name: demo
+spec:
+  serverRef:
+    name: demo
+  parentRef:
+    name: users
+    kind: LDAPOrganizationalUnit
+  username: demo
+  name: John Doe
+  surname: Doe
+  email: demo@example.com
+  passwordSecretRef:
+    name: demo-password

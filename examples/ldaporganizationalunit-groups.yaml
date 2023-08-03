@@ -1,0 +1,9 @@
+apiVersion: openldap.gpu-ninja.com/v1alpha1
+kind: LDAPOrganizationalUnit
+metadata:
+  name: groups
+spec:
+  serverRef:
+    name: demo
+  name: groups
+  description: "Acme Widgets Inc. Groups"

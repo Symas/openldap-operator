@@ -1,0 +1,118 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapgroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapgroups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapgroups/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldaporganizationalunits
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldaporganizationalunits/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldaporganizationalunits/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapservers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapservers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapservers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapusers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapusers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapusers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - v1
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch

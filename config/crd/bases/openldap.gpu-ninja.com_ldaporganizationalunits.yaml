@@ -1,0 +1,106 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: ldaporganizationalunits.openldap.gpu-ninja.com
+spec:
+  group: openldap.gpu-ninja.com
+  names:
+    kind: LDAPOrganizationalUnit
+    listKind: LDAPOrganizationalUnitList
+    plural: ldaporganizationalunits
+    singular: ldaporganizationalunit
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: LDAPOrganizationalUnit is a LDAP organizational unit.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              description:
+                description: Description is an optional description of this organizational
+                  unit.
+                type: string
+              name:
+                description: Name is the common name for this organizational unit.
+                type: string
+              parentRef:
+                description: ParentRef is an optional reference to the parent of this
+                  object (typically an organizational unit).
+                properties:
+                  apiVersion:
+                    description: APIVersion is the API version of the resource.
+                    type: string
+                  kind:
+                    description: Kind is the kind of the resource.
+                    type: string
+                  name:
+                    description: Name is the name of the resource.
+                    type: string
+                  namespace:
+                    description: Namespace is the namespace of the resource.
+                    type: string
+                type: object
+              serverRef:
+                description: ServerRef is a reference to the server that owns this
+                  object.
+                properties:
+                  name:
+                    description: Name of the referenced LDAPServer.
+                    type: string
+                  namespace:
+                    description: Namespace is the optional namespace of the referenced
+                      LDAPServer.
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - name
+            - serverRef
+            type: object
+          status:
+            description: SimpleStatus is a basic status type that can be reused across
+              multiple types.
+            properties:
+              message:
+                description: Message is a human readable message indicating details
+                  about why the object is in this condition.
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the most recent generation observed
+                  for this object by the controller.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the current phase of the object.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

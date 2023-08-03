@@ -1,0 +1,15 @@
+apiVersion: openldap.gpu-ninja.com/v1alpha1
+kind: LDAPGroup
+metadata:
+  name: admins
+spec:
+  serverRef:
+    name: demo
+  parentRef:
+    name: groups
+    kind: LDAPOrganizationalUnit
+  name: admins
+  description: "Admins group"
+  members:
+    - cn=admin,dc=example,dc=com
+    - cn=demo,ou=users,dc=example,dc=com
