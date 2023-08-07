@@ -88,6 +88,6 @@ jobs:
         file: ./image/Dockerfile
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-          ghcr.io/${{ github.repository }}:latest
+          ghcr.io/${{ github.repository }}/openldap:${{ github.ref_name }}
+          ghcr.io/${{ github.repository }}/openldap:latest
         platforms: linux/amd64,linux/arm64
