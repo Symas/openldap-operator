@@ -43,8 +43,15 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+// Allow recording of events.
+// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
+
 // Need to be able to read secrets to get the TLS certificates / passwords, etc.
-//+kubebuilder:rbac:groups=v1,resources=secrets,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+
+// Need to be able to manage statefulsets and services.
+//+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 
 //+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapservers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapservers/status,verbs=get;update;patch
