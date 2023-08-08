@@ -3,7 +3,7 @@ kind: LDAPServer
 metadata:
   name: demo
 spec:
-  image: ghcr.io/gpu-ninja/openldap-operator/openldap:v0.1.1
+  image: ghcr.io/gpu-ninja/openldap-operator/openldap:latest
   domain: example.com
   organization: "Acme Widgets Inc."
   adminPasswordSecretRef:
