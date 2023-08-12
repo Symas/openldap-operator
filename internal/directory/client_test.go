@@ -25,10 +25,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gpu-ninja/openldap-operator/api"
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/openldap-operator/internal/directory"
-	"github.com/gpu-ninja/openldap-operator/internal/util"
+	"github.com/gpu-ninja/operator-utils/name"
+	"github.com/gpu-ninja/operator-utils/reference"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -55,13 +55,13 @@ func TestClient(t *testing.T) {
 	mounts := testcontainers.ContainerMounts{
 		testcontainers.ContainerMount{
 			Source: testcontainers.GenericVolumeMountSource{
-				Name: util.GenerateName("openldap-config"),
+				Name: name.Generate("openldap-config"),
 			},
 			Target: "/etc/ldap/slapd.d",
 		},
 		testcontainers.ContainerMount{
 			Source: testcontainers.GenericVolumeMountSource{
-				Name: util.GenerateName("openldap-data"),
+				Name: name.Generate("openldap-data"),
 			},
 			Target: "/var/lib/ldap",
 		},
@@ -118,10 +118,10 @@ func TestClient(t *testing.T) {
 		},
 		Spec: openldapv1alpha1.LDAPServerSpec{
 			Domain: "example.com",
-			AdminPasswordSecretRef: api.LocalSecretReference{
+			AdminPasswordSecretRef: reference.LocalSecretReference{
 				Name: "admin-password",
 			},
-			CertificateSecretRef: api.LocalSecretReference{
+			CertificateSecretRef: reference.LocalSecretReference{
 				Name: "server-cert",
 			},
 		},
@@ -134,7 +134,7 @@ func TestClient(t *testing.T) {
 			Namespace: "default",
 		},
 		Data: map[string][]byte{
-			"LDAP_ADMIN_PASSWORD": []byte("admin"),
+			"password": []byte("admin"),
 		},
 	}, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -164,18 +164,18 @@ func TestClient(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("Organizational Units", func(t *testing.T) {
-		name := util.GenerateName("users")
-		dn := fmt.Sprintf("ou=%s,%s", name, baseDN)
+		organizationalUnitName := name.Generate("users")
+		dn := fmt.Sprintf("ou=%s,%s", organizationalUnitName, baseDN)
 
 		created, err := directoryClient.CreateOrUpdateEntry(&directory.OrganizationalUnit{
 			DistinguishedName: dn,
-			Name:              name,
+			Name:              organizationalUnitName,
 			Description:       "Test Users",
 		})
 		assert.True(t, created)
 		assert.NoError(t, err)
 
-		username := util.GenerateName("user")
+		username := name.Generate("user")
 		created, err = directoryClient.CreateOrUpdateEntry(&directory.User{
 			DistinguishedName: fmt.Sprintf("uid=%s,%s", username, dn),
 			Username:          username,
@@ -190,13 +190,13 @@ func TestClient(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, dn, ou.DistinguishedName)
-		assert.Equal(t, name, ou.Name)
+		assert.Equal(t, organizationalUnitName, ou.Name)
 		assert.Equal(t, "Test Users", ou.Description)
 
 		// Remove the description.
 		created, err = directoryClient.CreateOrUpdateEntry(&directory.OrganizationalUnit{
 			DistinguishedName: dn,
-			Name:              name,
+			Name:              organizationalUnitName,
 		})
 		assert.False(t, created)
 		assert.NoError(t, err)
@@ -214,12 +214,12 @@ func TestClient(t *testing.T) {
 	})
 
 	t.Run("Groups", func(t *testing.T) {
-		name := util.GenerateName("admins")
-		dn := fmt.Sprintf("cn=%s,%s", name, baseDN)
+		groupName := name.Generate("admins")
+		dn := fmt.Sprintf("cn=%s,%s", groupName, baseDN)
 
 		created, err := directoryClient.CreateOrUpdateEntry(&directory.Group{
 			DistinguishedName: dn,
-			Name:              name,
+			Name:              groupName,
 			Description:       "Test Admins",
 			Members:           []string{"cn=admin," + baseDN, "cn=other,ou=users," + baseDN},
 		})
@@ -231,14 +231,14 @@ func TestClient(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, dn, group.DistinguishedName)
-		assert.Equal(t, name, group.Name)
+		assert.Equal(t, groupName, group.Name)
 		assert.Equal(t, "Test Admins", group.Description)
 		assert.Len(t, group.Members, 2)
 
 		// Remove the description and a member.
 		created, err = directoryClient.CreateOrUpdateEntry(&directory.Group{
 			DistinguishedName: dn,
-			Name:              name,
+			Name:              groupName,
 			Members: []string{
 				"cn=admin," + baseDN,
 			},
@@ -260,12 +260,12 @@ func TestClient(t *testing.T) {
 	})
 
 	t.Run("Users", func(t *testing.T) {
-		name := util.GenerateName("other")
-		dn := fmt.Sprintf("uid=%s,%s", name, baseDN)
+		username := name.Generate("other")
+		dn := fmt.Sprintf("uid=%s,%s", username, baseDN)
 
 		created, err := directoryClient.CreateOrUpdateEntry(&directory.User{
 			DistinguishedName: dn,
-			Username:          name,
+			Username:          username,
 			Name:              "John Doe",
 			Surname:           "Doe",
 			Email:             "john@example.com",
@@ -279,7 +279,7 @@ func TestClient(t *testing.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, dn, user.DistinguishedName)
-		assert.Equal(t, name, user.Username)
+		assert.Equal(t, username, user.Username)
 		assert.Equal(t, "John Doe", user.Name)
 		assert.Equal(t, "Doe", user.Surname)
 		assert.Equal(t, "john@example.com", user.Email)
@@ -290,7 +290,7 @@ func TestClient(t *testing.T) {
 		// Remove the email.
 		created, err = directoryClient.CreateOrUpdateEntry(&directory.User{
 			DistinguishedName: dn,
-			Username:          name,
+			Username:          username,
 			Name:              "John Doe",
 			Surname:           "Doe",
 			Password:          "changeme",

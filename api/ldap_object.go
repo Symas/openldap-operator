@@ -20,6 +20,7 @@ package api
 import (
 	"context"
 
+	"github.com/gpu-ninja/operator-utils/reference"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,9 +36,10 @@ type LDAPObject interface {
 	metav1.Object
 	runtime.Object
 	NamedLDAPObject
-	ObjectWithReferences
+	reference.ObjectWithReferences
 	GetLDAPObjectSpec() *LDAPObjectSpec
 	SetStatus(status SimpleStatus)
+	GetPhase() Phase
 }
 
 // +kubebuilder:object:generate=true
@@ -45,7 +47,7 @@ type LDAPObjectSpec struct {
 	// ServerRef is a reference to the server that owns this object.
 	ServerRef LDAPServerReference `json:"serverRef"`
 	// ParentRef is an optional reference to the parent of this object (typically an organizational unit).
-	ParentRef *ObjectReference `json:"parentRef,omitempty"`
+	ParentRef *reference.ObjectReference `json:"parentRef,omitempty"`
 }
 
 // Phase is the current phase of the object.
@@ -68,4 +70,23 @@ type SimpleStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 	// Message is a human readable message indicating details about why the object is in this condition.
 	Message string `json:"message,omitempty"`
+}
+
+// LDAPServerReference is a reference to an LDAPServer.
+// +kubebuilder:object:generate=true
+type LDAPServerReference struct {
+	// Name of the referenced LDAPServer.
+	Name string `json:"name"`
+	// Namespace is the optional namespace of the referenced LDAPServer.
+	Namespace string `json:"namespace,omitempty"`
+}
+
+func (ref *LDAPServerReference) Resolve(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, parent runtime.Object) (runtime.Object, error) {
+	objRef := &reference.ObjectReference{
+		Name:      ref.Name,
+		Namespace: ref.Namespace,
+		Kind:      "LDAPServer",
+	}
+
+	return objRef.Resolve(ctx, reader, scheme, parent)
 }

@@ -2,6 +2,8 @@ apiVersion: openldap.gpu-ninja.com/v1alpha1
 kind: LDAPServer
 metadata:
   name: demo
+  labels:
+    app.kubernetes.io/component: server
 spec:
   image: ghcr.io/gpu-ninja/openldap-operator/openldap:latest
   domain: example.com

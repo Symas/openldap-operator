@@ -25,6 +25,7 @@ import (
 	"dario.cat/mergo"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,7 +37,8 @@ import (
 
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/openldap-operator/internal/constants"
-	"github.com/gpu-ninja/openldap-operator/internal/util"
+	"github.com/gpu-ninja/operator-utils/retryable"
+	"github.com/gpu-ninja/operator-utils/zaplogr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,9 +67,9 @@ type LDAPServerReconciler struct {
 }
 
 func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := util.LoggerFromContext(ctx)
+	logger := zaplogr.FromContext(ctx)
 
-	logger.Info("Reconciling server")
+	logger.Info("Reconciling LDAP Server")
 
 	var server openldapv1alpha1.LDAPServer
 	if err := r.Get(ctx, req.NamespacedName, &server); err != nil {
@@ -101,7 +103,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if !server.ObjectMeta.DeletionTimestamp.IsZero() {
-		logger.Info("Deleting server")
+		logger.Info("Deleting LDAP Server")
 
 		if controllerutil.ContainsFinalizer(&server, constants.FinalizerName) {
 			logger.Info("Removing Finalizer")
@@ -121,14 +123,14 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Make sure all references are resolvable.
 	if err := server.ResolveReferences(ctx, r.Client, r.Scheme); err != nil {
-		if util.IsRetryable(err) {
+		if retryable.IsRetryable(err) {
 			logger.Info("Not all references are resolvable, requeuing")
 
 			r.EventRecorder.Event(&server, corev1.EventTypeWarning,
 				"NotReady", "Not all references are resolvable")
 
 			if err := r.markPending(ctx, &server); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to mark as pending: %w", err)
+				return ctrl.Result{}, err
 			}
 
 			return ctrl.Result{RequeueAfter: constants.ReconcileRetryInterval}, nil
@@ -139,10 +141,18 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.EventRecorder.Eventf(&server, corev1.EventTypeWarning,
 			"Failed", "Failed to resolve references: %s", err)
 
-		r.markFailed(ctx, &server, err)
+		r.markFailed(ctx, &server, fmt.Errorf("failed to resolve references: %w", err))
 
 		return ctrl.Result{}, nil
 	}
+
+	if server.Status.Phase == openldapv1alpha1.LDAPServerPhaseFailed {
+		logger.Info("LDAP Server is in failed state, ignoring")
+
+		return ctrl.Result{}, nil
+	}
+
+	logger.Info("Creating or updating LDAP Server")
 
 	var creatingStatefulSet bool
 	if err := r.Get(ctx, statefulSetNamespaceName, &statefulSet); err != nil && errors.IsNotFound(err) {
@@ -167,6 +177,17 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			{
 				Name:  "LDAP_ORGANIZATION",
 				Value: server.Spec.Organization,
+			},
+			{
+				Name: "LDAP_ADMIN_PASSWORD",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: server.Spec.AdminPasswordSecretRef.Name,
+						},
+						Key: "password",
+					},
+				},
 			},
 		}
 
@@ -214,15 +235,6 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 								"/bootstrap.sh",
 							},
 							Env: envVars,
-							EnvFrom: []corev1.EnvFromSource{
-								{
-									SecretRef: &corev1.SecretEnvSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: server.Spec.AdminPasswordSecretRef.Name,
-										},
-									},
-								},
-							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "openldap-config",
@@ -344,7 +356,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.EventRecorder.Eventf(&server, corev1.EventTypeWarning,
 			"Failed", "Failed to reconcile openldap statefulset: %v", err)
 
-		r.markFailed(ctx, &server, err)
+		r.markFailed(ctx, &server, fmt.Errorf("failed to reconcile openldap statefulset: %w", err))
 
 		return ctrl.Result{}, nil
 	}
@@ -354,7 +366,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			zap.String("operation", string(statefulSetOpResult)))
 
 		if err := r.markPending(ctx, &server); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to mark as pending: %w", err)
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -409,7 +421,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.EventRecorder.Eventf(&server, corev1.EventTypeWarning,
 			"Failed", "Failed to reconcile openldap statefulset: %v", err)
 
-		r.markFailed(ctx, &server, err)
+		r.markFailed(ctx, &server, fmt.Errorf("failed to reconcile openldap service: %w", err))
 
 		return ctrl.Result{}, nil
 	}
@@ -423,7 +435,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Info("Waiting for LDAPServer to become ready")
 
 		if err := r.markPending(ctx, &server); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to mark as pending: %w", err)
+			return ctrl.Result{}, err
 		}
 
 		return ctrl.Result{RequeueAfter: constants.ReconcileRetryInterval}, nil
@@ -434,7 +446,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			"Created", "Successfully created")
 
 		if err := r.markReady(ctx, &server); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to mark as ready: %w", err)
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -444,23 +456,24 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 // SetupWithManager sets up the controller with the Manager.
 func (r *LDAPServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("ldapserver-controller").
 		For(&openldapv1alpha1.LDAPServer{}).
+		Owns(&appsv1.StatefulSet{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.Secret{}).
 		Complete(r)
 }
 
 func (r *LDAPServerReconciler) markPending(ctx context.Context, server *openldapv1alpha1.LDAPServer) error {
-	updatedConditions := make([]openldapv1alpha1.LDAPServerCondition, len(server.Status.Conditions))
+	updatedConditions := make([]metav1.Condition, len(server.Status.Conditions))
 	copy(updatedConditions, server.Status.Conditions)
 
-	if server.Status.Phase != openldapv1alpha1.LDAPServerPhasePending {
-		updatedConditions = append(updatedConditions, openldapv1alpha1.LDAPServerCondition{
-			Type:               openldapv1alpha1.LDAPServerConditionTypePending,
-			Status:             corev1.ConditionTrue,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "Pending",
-			Message:            "LDAP Server is pending",
-		})
-	}
+	meta.SetStatusCondition(&updatedConditions, metav1.Condition{
+		Type:    string(openldapv1alpha1.LDAPServerConditionTypePending),
+		Status:  metav1.ConditionTrue,
+		Reason:  "Pending",
+		Message: "LDAP Server is pending",
+	})
 
 	_, err := controllerutil.CreateOrPatch(ctx, r.Client, server, func() error {
 		server.Status.ObservedGeneration = server.Generation
@@ -470,23 +483,22 @@ func (r *LDAPServerReconciler) markPending(ctx context.Context, server *openldap
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update status: %w", err)
+		return fmt.Errorf("failed to mark as pending: %w", err)
 	}
 
 	return nil
 }
 
 func (r *LDAPServerReconciler) markReady(ctx context.Context, server *openldapv1alpha1.LDAPServer) error {
-	updatedConditions := make([]openldapv1alpha1.LDAPServerCondition, len(server.Status.Conditions)+1)
+	updatedConditions := make([]metav1.Condition, len(server.Status.Conditions))
 	copy(updatedConditions, server.Status.Conditions)
 
-	updatedConditions[len(server.Status.Conditions)] = openldapv1alpha1.LDAPServerCondition{
-		Type:               openldapv1alpha1.LDAPServerConditionTypeReady,
-		Status:             corev1.ConditionTrue,
-		LastTransitionTime: metav1.Now(),
-		Reason:             "Ready",
-		Message:            "LDAP Server is ready and running",
-	}
+	meta.SetStatusCondition(&updatedConditions, metav1.Condition{
+		Type:    string(openldapv1alpha1.LDAPServerPhaseReady),
+		Status:  metav1.ConditionTrue,
+		Reason:  "Ready",
+		Message: "LDAP Server is ready",
+	})
 
 	_, err := controllerutil.CreateOrPatch(ctx, r.Client, server, func() error {
 		server.Status.ObservedGeneration = server.Generation
@@ -496,25 +508,24 @@ func (r *LDAPServerReconciler) markReady(ctx context.Context, server *openldapv1
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update status: %w", err)
+		return fmt.Errorf("failed to mark as ready: %w", err)
 	}
 
 	return nil
 }
 
 func (r *LDAPServerReconciler) markFailed(ctx context.Context, server *openldapv1alpha1.LDAPServer, err error) {
-	logger := util.LoggerFromContext(ctx)
+	logger := zaplogr.FromContext(ctx)
 
-	updatedConditions := make([]openldapv1alpha1.LDAPServerCondition, len(server.Status.Conditions)+1)
+	updatedConditions := make([]metav1.Condition, len(server.Status.Conditions))
 	copy(updatedConditions, server.Status.Conditions)
 
-	updatedConditions[len(server.Status.Conditions)] = openldapv1alpha1.LDAPServerCondition{
-		Type:               openldapv1alpha1.LDAPServerConditionTypeFailed,
-		Status:             corev1.ConditionTrue,
-		LastTransitionTime: metav1.Now(),
-		Reason:             "Failed",
-		Message:            err.Error(),
-	}
+	meta.SetStatusCondition(&updatedConditions, metav1.Condition{
+		Type:    string(openldapv1alpha1.LDAPServerConditionTypeFailed),
+		Status:  metav1.ConditionTrue,
+		Reason:  "Failed",
+		Message: err.Error(),
+	})
 
 	_, updateErr := controllerutil.CreateOrPatch(ctx, r.Client, server, func() error {
 		server.Status.ObservedGeneration = server.Generation
@@ -524,6 +535,6 @@ func (r *LDAPServerReconciler) markFailed(ctx context.Context, server *openldapv
 		return nil
 	})
 	if updateErr != nil {
-		logger.Error("Failed to update status", zap.Error(updateErr))
+		logger.Error("Failed to mark as failed", zap.Error(updateErr))
 	}
 }

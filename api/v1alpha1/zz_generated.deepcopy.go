@@ -23,7 +23,8 @@
 package v1alpha1
 
 import (
-	"github.com/gpu-ninja/openldap-operator/api"
+	"github.com/gpu-ninja/operator-utils/reference"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -290,7 +291,7 @@ func (in *LDAPServerStatus) DeepCopyInto(out *LDAPServerStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]LDAPServerCondition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -392,7 +393,7 @@ func (in *LDAPUserSpec) DeepCopyInto(out *LDAPUserSpec) {
 	in.LDAPObjectSpec.DeepCopyInto(&out.LDAPObjectSpec)
 	if in.PaswordSecretRef != nil {
 		in, out := &in.PaswordSecretRef, &out.PaswordSecretRef
-		*out = new(api.LocalSecretReference)
+		*out = new(reference.LocalSecretReference)
 		**out = **in
 	}
 }

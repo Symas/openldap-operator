@@ -121,6 +121,10 @@ func (g *LDAPGroup) SetStatus(status api.SimpleStatus) {
 	g.Status = status
 }
 
+func (g *LDAPGroup) GetPhase() api.Phase {
+	return g.Status.Phase
+}
+
 func init() {
 	SchemeBuilder.Register(&LDAPGroup{}, &LDAPGroupList{})
 }

@@ -21,7 +21,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/gpu-ninja/openldap-operator/api"
+	"github.com/gpu-ninja/operator-utils/reference"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -64,11 +64,10 @@ type LDAPServerSpec struct {
 	Organization string `json:"organization"`
 	// AdminPasswordSecretRef is a reference to a secret that contains the
 	// password for the admin user.
-	AdminPasswordSecretRef api.LocalSecretReference `json:"adminPasswordSecretRef"`
+	AdminPasswordSecretRef reference.LocalSecretReference `json:"adminPasswordSecretRef"`
 	// CertificateSecretRef is a reference to a secret that contains the
 	// TLS certificate and key that will be used to secure the LDAP server.
-	// Expected to be in cert-manager format, eg. tls.key, tls.crt, ca.crt.
-	CertificateSecretRef api.LocalSecretReference `json:"certificateSecretRef"`
+	CertificateSecretRef reference.LocalSecretReference `json:"certificateSecretRef"`
 	// DebugLevel controls the verbosity of the server logs.
 	DebugLevel *int `json:"debugLevel,omitempty"`
 	// FileDescriptorLimit controls the maximum number of file
@@ -101,10 +100,10 @@ type LDAPServerCondition struct {
 type LDAPServerStatus struct {
 	// Phase is the current state of the LDAP server.
 	Phase LDAPServerPhase `json:"phase,omitempty"`
-	// ObservedGeneration is the most recent generation observed for this LDAPServer by the controller.
+	// ObservedGeneration is the most recent generation observed for this LDAP server by the controller.
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-	// Conditions represents the latest available observations of an LDAPServer's current state.
-	Conditions []LDAPServerCondition `json:"conditions,omitempty"`
+	// Conditions represents the latest available observations of the LDAP Server's current state.
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true

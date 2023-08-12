@@ -39,7 +39,7 @@ import (
 	"github.com/gpu-ninja/openldap-operator/internal/controller"
 	"github.com/gpu-ninja/openldap-operator/internal/directory"
 	"github.com/gpu-ninja/openldap-operator/internal/mapper"
-	"github.com/gpu-ninja/openldap-operator/internal/util"
+	"github.com/gpu-ninja/operator-utils/zaplogr"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -80,7 +80,7 @@ func main() {
 		lvl,
 	))
 
-	ctrl.SetLogger(util.NewLogger(zapLog))
+	ctrl.SetLogger(zaplogr.New(zapLog))
 	setupLog := ctrl.Log.WithName("setup")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

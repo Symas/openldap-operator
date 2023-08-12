@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
-	"github.com/gpu-ninja/openldap-operator/internal/util"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // Client is an LDAP directory client.
@@ -303,7 +303,7 @@ func (c *clientImpl) createOrUpdateGroup(group *Group) (bool, error) {
 	optionalAttributeModifications(modifyRequest, "description", existingDescription, group.Description)
 
 	existingMembers := entry.GetAttributeValues("member")
-	if !util.Equal(existingMembers, group.Members) {
+	if !sets.New(existingMembers...).Equal(sets.New(group.Members...)) {
 		modifyRequest.Replace("member", group.Members)
 	}
 

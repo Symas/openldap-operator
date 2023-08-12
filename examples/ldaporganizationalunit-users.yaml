@@ -2,6 +2,8 @@ apiVersion: openldap.gpu-ninja.com/v1alpha1
 kind: LDAPOrganizationalUnit
 metadata:
   name: users
+  labels:
+    app.kubernetes.io/component: managed-resource
 spec:
   serverRef:
     name: demo

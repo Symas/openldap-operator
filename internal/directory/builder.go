@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/operator-utils/k8sutils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -77,7 +78,7 @@ func (b *clientBuilderImpl) Build(ctx context.Context) (Client, error) {
 		return nil, fmt.Errorf("failed to resolve admin password secret reference: %w", err)
 	}
 
-	adminPassword := string(adminPasswordSecret.(*corev1.Secret).Data["LDAP_ADMIN_PASSWORD"])
+	adminPassword := string(adminPasswordSecret.(*corev1.Secret).Data["password"])
 
 	// Get the CA certificate..
 	certificateSecret, err := b.server.Spec.CertificateSecretRef.Resolve(ctx, b.reader, b.scheme, b.server)
@@ -90,7 +91,7 @@ func (b *clientBuilderImpl) Build(ctx context.Context) (Client, error) {
 		return nil, fmt.Errorf("failed to construct ca bundle")
 	}
 
-	serverAddress := fmt.Sprintf("ldaps://%s.%s.svc.cluster.local", b.server.Name, b.server.Namespace)
+	serverAddress := fmt.Sprintf("ldaps://%s.%s.svc.%s", b.server.Name, b.server.Namespace, k8sutils.GetClusterDomain())
 	if b.server.Spec.AddressOverride != "" {
 		serverAddress = b.server.Spec.AddressOverride
 	}

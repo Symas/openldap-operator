@@ -91,3 +91,14 @@ jobs:
           ghcr.io/${{ github.repository }}/openldap:${{ github.ref_name }}
           ghcr.io/${{ github.repository }}/openldap:latest
         platforms: linux/amd64,linux/arm64
+
+    - name: Bundle Configuration
+      run: make bundle
+    
+    - name: Upload Bundle
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          bundle/*.yaml
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

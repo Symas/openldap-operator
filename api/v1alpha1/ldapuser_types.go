@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/gpu-ninja/openldap-operator/api"
+	"github.com/gpu-ninja/operator-utils/reference"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +39,7 @@ type LDAPUserSpec struct {
 	// Email is an optional email address of this user.
 	Email string `json:"email,omitempty"`
 	// PasswordSecretRef is an optional reference to a secret containing the password of the user.
-	PaswordSecretRef *api.LocalSecretReference `json:"passwordSecretRef,omitempty"`
+	PaswordSecretRef *reference.LocalSecretReference `json:"passwordSecretRef,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -128,6 +129,10 @@ func (u *LDAPUser) GetLDAPObjectSpec() *api.LDAPObjectSpec {
 
 func (u *LDAPUser) SetStatus(status api.SimpleStatus) {
 	u.Status = status
+}
+
+func (u *LDAPUser) GetPhase() api.Phase {
+	return u.Status.Phase
 }
 
 func init() {

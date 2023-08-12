@@ -28,7 +28,8 @@ import (
 	"github.com/gpu-ninja/openldap-operator/internal/controller"
 	"github.com/gpu-ninja/openldap-operator/internal/directory"
 	"github.com/gpu-ninja/openldap-operator/internal/mapper"
-	"github.com/gpu-ninja/openldap-operator/internal/util"
+	"github.com/gpu-ninja/operator-utils/reference"
+	"github.com/gpu-ninja/operator-utils/zaplogr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -43,7 +44,7 @@ import (
 )
 
 func TestLDAPObjectReconciler(t *testing.T) {
-	ctrl.SetLogger(util.NewLogger(zaptest.NewLogger(t)))
+	ctrl.SetLogger(zaplogr.New(zaptest.NewLogger(t)))
 
 	scheme := runtime.NewScheme()
 	_ = openldapv1alpha1.AddToScheme(scheme)
@@ -56,10 +57,10 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 		Spec: openldapv1alpha1.LDAPServerSpec{
 			Domain: "example.com",
-			AdminPasswordSecretRef: api.LocalSecretReference{
+			AdminPasswordSecretRef: reference.LocalSecretReference{
 				Name: "admin-password",
 			},
-			CertificateSecretRef: api.LocalSecretReference{
+			CertificateSecretRef: reference.LocalSecretReference{
 				Name: "certificate",
 			},
 		},
@@ -83,7 +84,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 				},
 			},
 			Username: "test-user",
-			PaswordSecretRef: &api.LocalSecretReference{
+			PaswordSecretRef: &reference.LocalSecretReference{
 				Name: "test-user-password",
 			},
 		},
@@ -95,7 +96,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 			Namespace: "default",
 		},
 		Data: map[string][]byte{
-			"LDAP_USER_PASSWORD": []byte("test-password"),
+			"password": []byte("test-password"),
 		},
 	}
 

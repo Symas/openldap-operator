@@ -118,6 +118,10 @@ func (ou *LDAPOrganizationalUnit) SetStatus(status api.SimpleStatus) {
 	ou.Status = status
 }
 
+func (ou *LDAPOrganizationalUnit) GetPhase() api.Phase {
+	return ou.Status.Phase
+}
+
 func init() {
 	SchemeBuilder.Register(&LDAPOrganizationalUnit{}, &LDAPOrganizationalUnitList{})
 }

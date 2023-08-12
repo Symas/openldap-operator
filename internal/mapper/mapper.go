@@ -55,7 +55,7 @@ func UserToEntry(ctx context.Context, reader client.Reader, scheme *runtime.Sche
 			return nil, err
 		}
 
-		password = string(passwordSecret.(*corev1.Secret).Data["LDAP_USER_PASSWORD"])
+		password = string(passwordSecret.(*corev1.Secret).Data["password"])
 	}
 
 	return &directory.User{
