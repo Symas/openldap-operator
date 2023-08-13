@@ -22,7 +22,7 @@ kapp deploy -a cert-manager -f https://github.com/cert-manager/cert-manager/rele
 kapp deploy -a openldap-operator -f https://github.com/gpu-ninja/openldap-operator/releases/latest/download/openldap-operator.yaml
 ```
 
-### Starting an OpenLDAP Directory
+### Starting a Directory
 
 ```shell
 kubectl apply -f examples -l app.kubernetes.io/component=server
