@@ -19,21 +19,21 @@ package directory
 
 import (
 	"context"
-	"fmt"
-	"strings"
-	"sync"
 
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
+	"github.com/stretchr/testify/mock"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type fakeClientBuilder struct {
-	db sync.Map
+	m *mock.Mock
 }
 
-func NewFakeClientBuilder() ClientBuilder {
-	return &fakeClientBuilder{}
+func NewFakeClientBuilder(m *mock.Mock) ClientBuilder {
+	return &fakeClientBuilder{
+		m: m,
+	}
 }
 
 func (b *fakeClientBuilder) WithReader(_ client.Reader) ClientBuilder {
@@ -50,69 +50,30 @@ func (b *fakeClientBuilder) WithServer(_ *openldapv1alpha1.LDAPServer) ClientBui
 
 func (b *fakeClientBuilder) Build(_ context.Context) (Client, error) {
 	return &fakeClient{
-		db: &b.db,
+		Mock: b.m,
 	}, nil
 }
 
 type fakeClient struct {
-	db *sync.Map
+	*mock.Mock
 }
 
 func (c *fakeClient) Ping() error {
-	return nil
+	args := c.Called()
+	return args.Error(0)
 }
 
 func (c *fakeClient) GetEntry(dn string, entry any) error {
-	v, ok := c.db.Load(dn)
-	if !ok {
-		return fmt.Errorf("entry not found")
-	}
-
-	switch e := entry.(type) {
-	case *OrganizationalUnit:
-		*e = *(v.(*OrganizationalUnit))
-	case *Group:
-		*e = *(v.(*Group))
-	case *User:
-		*e = *(v.(*User))
-	default:
-		return fmt.Errorf("unknown entry type")
-	}
-
-	return nil
+	args := c.Called(dn, entry)
+	return args.Error(0)
 }
 
 func (c *fakeClient) CreateOrUpdateEntry(entry any) (bool, error) {
-	var exists bool
-	switch e := entry.(type) {
-	case *OrganizationalUnit:
-		_, exists = c.db.Load(e.DistinguishedName)
-		c.db.Store(e.DistinguishedName, e)
-	case *Group:
-		_, exists = c.db.Load(e.DistinguishedName)
-		c.db.Store(e.DistinguishedName, e)
-	case *User:
-		_, exists = c.db.Load(e.DistinguishedName)
-		c.db.Store(e.DistinguishedName, e)
-	default:
-		return false, fmt.Errorf("unknown entry type")
-	}
-
-	return !exists, nil
+	args := c.Called(entry)
+	return args.Bool(0), args.Error(1)
 }
 
 func (c *fakeClient) DeleteEntry(dn string, cascading bool) error {
-	if cascading {
-		c.db.Range(func(key, value any) bool {
-			if strings.HasPrefix(key.(string), dn) {
-				c.db.Delete(key)
-			}
-
-			return true
-		})
-	} else {
-		c.db.Delete(dn)
-	}
-
-	return nil
+	args := c.Called(dn, cascading)
+	return args.Error(0)
 }

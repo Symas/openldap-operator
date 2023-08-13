@@ -126,7 +126,8 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
 			"Failed", "Failed to resolve references: %s", err)
 
-		r.markFailed(ctx, obj, fmt.Errorf("failed to resolve references: %w", err))
+		r.markFailed(ctx, obj,
+			fmt.Errorf("failed to resolve references: %w", err))
 
 		return ctrl.Result{}, nil
 	}
@@ -139,7 +140,8 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
 			"Failed", "Failed to resolve server reference: %s", err)
 
-		r.markFailed(ctx, obj, fmt.Errorf("failed to resolve server reference: %w", err))
+		r.markFailed(ctx, obj,
+			fmt.Errorf("failed to resolve server reference: %w", err))
 
 		return ctrl.Result{}, nil
 	}
@@ -150,9 +152,8 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		logger.Info("Referenced LDAP Server not ready",
 			zap.String("namespace", server.Namespace), zap.String("name", server.Name))
 
-		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
-			"NotReady", "Server %s in namespace %s not ready",
-			server.Name, server.Namespace)
+		r.EventRecorder.Event(obj, corev1.EventTypeWarning,
+			"NotReady", "Referenced server is not ready")
 
 		if err := r.markPending(ctx, obj); err != nil {
 			return ctrl.Result{}, err
@@ -171,7 +172,8 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 			r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
 				"Failed", "Failed to resolve parent reference: %s", err)
 
-			r.markFailed(ctx, obj, fmt.Errorf("failed to resolve parent reference: %w", err))
+			r.markFailed(ctx, obj,
+				fmt.Errorf("failed to resolve parent reference: %w", err))
 
 			return ctrl.Result{}, nil
 		}
@@ -182,10 +184,10 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		if !ok {
 			logger.Error("Parent is not an LDAP Object")
 
-			err := fmt.Errorf("parent is not an ldap object")
 			r.EventRecorder.Event(obj, corev1.EventTypeWarning,
-				"Failed", err.Error())
+				"Failed", "Parent is not an ldap object")
 
+			err := fmt.Errorf("parent is not an ldap object")
 			r.markFailed(ctx, obj, err)
 
 			return ctrl.Result{}, err
@@ -196,9 +198,8 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 			logger.Info("Referenced parent LDAP object not ready",
 				zap.String("namespace", parentObj.GetNamespace()), zap.String("name", parentObj.GetName()))
 
-			r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
-				"NotReady", "Parent %s in namespace %s not ready",
-				parentObj.GetName(), parentObj.GetNamespace())
+			r.EventRecorder.Event(obj, corev1.EventTypeWarning,
+				"NotReady", "Referenced parent object is not ready")
 
 			if err := r.markPending(ctx, obj); err != nil {
 				return ctrl.Result{}, err
@@ -260,19 +261,21 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
 			"Failed", "Failed to set owner reference: %s", err)
 
-		r.markFailed(ctx, obj, err)
+		r.markFailed(ctx, obj,
+			fmt.Errorf("failed to set owner reference: %w", err))
 
 		return ctrl.Result{}, nil
 	}
 
 	entry, err := r.MapToEntry(ctx, r.Client, r.Scheme, dn, obj)
 	if err != nil {
-		logger.Error("Failed to map to entry", zap.Error(err))
+		logger.Error("Failed to map to LDAP entry", zap.Error(err))
 
 		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
-			"Failed", "Failed to map to entry: %s", err)
+			"Failed", "Failed to map to ldap entry: %s", err)
 
-		r.markFailed(ctx, obj, err)
+		r.markFailed(ctx, obj,
+			fmt.Errorf("failed to map to ldap entry: %w", err))
 
 		return ctrl.Result{}, nil
 	}
@@ -282,9 +285,10 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		logger.Error("Failed to create or update LDAP object", zap.Error(err))
 
 		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
-			"Failed", "Failed to create or update LDAP object: %s", err)
+			"Failed", "Failed to create or update ldap object: %s", err)
 
-		r.markFailed(ctx, obj, err)
+		r.markFailed(ctx, obj,
+			fmt.Errorf("failed to create or update ldap object: %w", err))
 
 		return ctrl.Result{}, nil
 	}

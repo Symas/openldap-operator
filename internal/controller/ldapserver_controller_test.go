@@ -1,0 +1,298 @@
+/* SPDX-License-Identifier: Apache-2.0
+ *
+ * Copyright 2023 Damian Peckett <damian@pecke.tt>.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package controller_test
+
+import (
+	"context"
+	"fmt"
+	"testing"
+	"time"
+
+	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/openldap-operator/internal/constants"
+	"github.com/gpu-ninja/openldap-operator/internal/controller"
+	fakeutils "github.com/gpu-ninja/operator-utils/fake"
+	"github.com/gpu-ninja/operator-utils/reference"
+	"github.com/gpu-ninja/operator-utils/zaplogr"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+func TestLDAPServerReconciler(t *testing.T) {
+	ctrl.SetLogger(zaplogr.New(zaptest.NewLogger(t)))
+
+	scheme := runtime.NewScheme()
+
+	err := corev1.AddToScheme(scheme)
+	require.NoError(t, err)
+
+	err = appsv1.AddToScheme(scheme)
+	require.NoError(t, err)
+
+	err = openldapv1alpha1.AddToScheme(scheme)
+	require.NoError(t, err)
+
+	server := &openldapv1alpha1.LDAPServer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+		},
+		Spec: openldapv1alpha1.LDAPServerSpec{
+			Image:        "ghcr.io/gpu-ninja/openldap-operator/openldap:latest",
+			Domain:       "example.com",
+			Organization: "Acme Widgets Inc.",
+			AdminPasswordSecretRef: reference.LocalSecretReference{
+				Name: "admin-password",
+			},
+			CertificateSecretRef: reference.LocalSecretReference{
+				Name: "demo-tls",
+			},
+			Storage: openldapv1alpha1.LDAPServerStorageSpec{
+				Size: "1Gi",
+			},
+		},
+	}
+
+	serverCertificate := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "demo-tls",
+			Namespace: "default",
+		},
+		Type: corev1.SecretTypeTLS,
+		StringData: map[string]string{
+			"ca.crt":  "",
+			"tls.crt": "",
+			"tls.key": "",
+		},
+	}
+
+	adminPassword := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "admin-password",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"password": []byte("password"),
+		},
+	}
+
+	subResourceClient := fakeutils.NewSubResourceClient(scheme)
+
+	interceptorFuncs := interceptor.Funcs{
+		SubResource: func(client client.WithWatch, subResource string) client.SubResourceClient {
+			return subResourceClient
+		},
+	}
+
+	r := &controller.LDAPServerReconciler{
+		Scheme: scheme,
+	}
+
+	ctx := context.Background()
+
+	t.Run("Create or Update", func(t *testing.T) {
+		eventRecorder := record.NewFakeRecorder(2)
+		r.EventRecorder = eventRecorder
+
+		subResourceClient.Reset()
+
+		r.Client = fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(server, serverCertificate, adminPassword).
+			WithStatusSubresource(server).
+			WithInterceptorFuncs(interceptorFuncs).
+			Build()
+
+		resp, err := r.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      server.Name,
+				Namespace: server.Namespace,
+			},
+		})
+		require.NoError(t, err)
+		assert.NotZero(t, resp.RequeueAfter)
+
+		require.Len(t, eventRecorder.Events, 1)
+		event := <-eventRecorder.Events
+		assert.Equal(t, "Normal Pending Waiting for statefulset to become ready", event)
+
+		updatedServer := server.DeepCopy()
+		err = subResourceClient.Get(ctx, server, updatedServer)
+		require.NoError(t, err)
+
+		assert.Equal(t, openldapv1alpha1.LDAPServerPhasePending, updatedServer.Status.Phase)
+		assert.Len(t, updatedServer.Status.Conditions, 1)
+
+		var svc corev1.Service
+		err = r.Client.Get(ctx, types.NamespacedName{
+			Name:      server.Name,
+			Namespace: server.Namespace,
+		}, &svc)
+		require.NoError(t, err)
+
+		var sts appsv1.StatefulSet
+		err = r.Client.Get(ctx, types.NamespacedName{
+			Name:      server.Name,
+			Namespace: server.Namespace,
+		}, &sts)
+		require.NoError(t, err)
+
+		sts.Status.ReadyReplicas = *sts.Spec.Replicas
+
+		r.Client = fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(updatedServer, serverCertificate, adminPassword, &sts).
+			WithStatusSubresource(updatedServer, &sts).
+			WithInterceptorFuncs(interceptorFuncs).
+			Build()
+
+		resp, err = r.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      server.Name,
+				Namespace: server.Namespace,
+			},
+		})
+		require.NoError(t, err)
+		assert.Zero(t, resp)
+
+		require.Len(t, eventRecorder.Events, 1)
+		event = <-eventRecorder.Events
+		assert.Equal(t, "Normal Created Successfully created", event)
+
+		updatedServer = server.DeepCopy()
+		err = subResourceClient.Get(ctx, server, updatedServer)
+		require.NoError(t, err)
+
+		assert.Equal(t, openldapv1alpha1.LDAPServerPhaseReady, updatedServer.Status.Phase)
+		assert.Len(t, updatedServer.Status.Conditions, 2)
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		deletingServer := server.DeepCopy()
+		deletingServer.DeletionTimestamp = &metav1.Time{Time: metav1.Now().Add(-1 * time.Second)}
+		deletingServer.Finalizers = []string{constants.FinalizerName}
+
+		eventRecorder := record.NewFakeRecorder(2)
+		r.EventRecorder = eventRecorder
+
+		r.Client = fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(deletingServer, serverCertificate, adminPassword).
+			WithStatusSubresource(deletingServer).
+			Build()
+
+		resp, err := r.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      server.Name,
+				Namespace: server.Namespace,
+			},
+		})
+		require.NoError(t, err)
+		assert.Zero(t, resp)
+
+		assert.Len(t, eventRecorder.Events, 0)
+	})
+
+	t.Run("References Not Resolvable", func(t *testing.T) {
+		eventRecorder := record.NewFakeRecorder(2)
+		r.EventRecorder = eventRecorder
+
+		subResourceClient.Reset()
+
+		r.Client = fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(server). // note the missing secrets
+			WithStatusSubresource(server).
+			WithInterceptorFuncs(interceptorFuncs).
+			Build()
+
+		resp, err := r.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      server.Name,
+				Namespace: server.Namespace,
+			},
+		})
+		require.NoError(t, err)
+		assert.NotZero(t, resp.RequeueAfter)
+
+		require.Len(t, eventRecorder.Events, 1)
+		event := <-eventRecorder.Events
+		assert.Equal(t, "Warning NotReady Not all references are resolvable", event)
+
+		updatedServer := server.DeepCopy()
+		err = subResourceClient.Get(ctx, server, updatedServer)
+		require.NoError(t, err)
+
+		assert.Equal(t, openldapv1alpha1.LDAPServerPhasePending, updatedServer.Status.Phase)
+		assert.Len(t, updatedServer.Status.Conditions, 1)
+	})
+
+	t.Run("Failure", func(t *testing.T) {
+		eventRecorder := record.NewFakeRecorder(2)
+		r.EventRecorder = eventRecorder
+
+		failOnSecrets := interceptorFuncs
+		failOnSecrets.Get = func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if _, ok := obj.(*appsv1.StatefulSet); ok {
+				return fmt.Errorf("bang")
+			}
+
+			return client.Get(ctx, key, obj, opts...)
+		}
+
+		subResourceClient.Reset()
+
+		r.Client = fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(server, serverCertificate, adminPassword).
+			WithStatusSubresource(server).
+			WithInterceptorFuncs(failOnSecrets).
+			Build()
+
+		resp, err := r.Reconcile(ctx, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      server.Name,
+				Namespace: server.Namespace,
+			},
+		})
+		require.NoError(t, err)
+		assert.Zero(t, resp)
+
+		require.Len(t, eventRecorder.Events, 1)
+		event := <-eventRecorder.Events
+		assert.Equal(t, "Warning Failed Failed to reconcile openldap statefulset: bang", event)
+
+		updatedServer := server.DeepCopy()
+		err = subResourceClient.Get(ctx, server, updatedServer)
+		require.NoError(t, err)
+
+		assert.Equal(t, openldapv1alpha1.LDAPServerPhaseFailed, updatedServer.Status.Phase)
+	})
+}

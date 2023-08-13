@@ -141,7 +141,8 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.EventRecorder.Eventf(&server, corev1.EventTypeWarning,
 			"Failed", "Failed to resolve references: %s", err)
 
-		r.markFailed(ctx, &server, fmt.Errorf("failed to resolve references: %w", err))
+		r.markFailed(ctx, &server,
+			fmt.Errorf("failed to resolve references: %w", err))
 
 		return ctrl.Result{}, nil
 	}
@@ -354,9 +355,10 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Error("Failed to reconcile openldap statefulset", zap.Error(err))
 
 		r.EventRecorder.Eventf(&server, corev1.EventTypeWarning,
-			"Failed", "Failed to reconcile openldap statefulset: %v", err)
+			"Failed", "Failed to reconcile openldap statefulset: %s", err)
 
-		r.markFailed(ctx, &server, fmt.Errorf("failed to reconcile openldap statefulset: %w", err))
+		r.markFailed(ctx, &server,
+			fmt.Errorf("failed to reconcile openldap statefulset: %w", err))
 
 		return ctrl.Result{}, nil
 	}
@@ -419,9 +421,10 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		logger.Error("Failed to reconcile openldap service", zap.Error(err))
 
 		r.EventRecorder.Eventf(&server, corev1.EventTypeWarning,
-			"Failed", "Failed to reconcile openldap statefulset: %v", err)
+			"Failed", "Failed to reconcile openldap statefulset: %s", err)
 
-		r.markFailed(ctx, &server, fmt.Errorf("failed to reconcile openldap service: %w", err))
+		r.markFailed(ctx, &server,
+			fmt.Errorf("failed to reconcile openldap service: %w", err))
 
 		return ctrl.Result{}, nil
 	}
@@ -432,7 +435,10 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if statefulSet.Status.ReadyReplicas != *statefulSet.Spec.Replicas {
-		logger.Info("Waiting for LDAPServer to become ready")
+		logger.Info("Waiting for StatefulSet to become ready")
+
+		r.EventRecorder.Event(&server, corev1.EventTypeNormal,
+			"Pending", "Waiting for statefulset to become ready")
 
 		if err := r.markPending(ctx, &server); err != nil {
 			return ctrl.Result{}, err
