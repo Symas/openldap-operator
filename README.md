@@ -6,16 +6,23 @@ A Kubernetes operator for deploying and managing OpenLDAP directories.
 
 ### Prerequisites
 
-* [cert-manager](https://cert-manager.io/docs/installation/)
 * [kapp](https://carvel.dev/kapp/)
 
 ### Installing
 
+#### Cert-Manager
+
 ```shell
-kapp deploy -a dex-operator -f https://github.com/gpu-ninja/openldap-operator/releases/latest/download/openldap-operator.yaml
+kapp deploy -a cert-manager -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml
 ```
 
-### Starting an OpenLDAP directory
+#### Operator
+
+```shell
+kapp deploy -a openldap-operator -f https://github.com/gpu-ninja/openldap-operator/releases/latest/download/openldap-operator.yaml
+```
+
+### Starting an OpenLDAP Directory
 
 ```shell
 kubectl apply -f examples -l app.kubernetes.io/component=server

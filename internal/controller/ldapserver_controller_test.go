@@ -258,8 +258,8 @@ func TestLDAPServerReconciler(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
 		r.EventRecorder = eventRecorder
 
-		failOnSecrets := interceptorFuncs
-		failOnSecrets.Get = func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+		failOnStatefulSets := interceptorFuncs
+		failOnStatefulSets.Get = func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 			if _, ok := obj.(*appsv1.StatefulSet); ok {
 				return fmt.Errorf("bang")
 			}
@@ -273,7 +273,7 @@ func TestLDAPServerReconciler(t *testing.T) {
 			WithScheme(scheme).
 			WithObjects(server, serverCertificate, adminPassword).
 			WithStatusSubresource(server).
-			WithInterceptorFuncs(failOnSecrets).
+			WithInterceptorFuncs(failOnStatefulSets).
 			Build()
 
 		resp, err := r.Reconcile(ctx, reconcile.Request{
