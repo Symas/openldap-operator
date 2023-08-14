@@ -66,9 +66,6 @@ spec:
                   name:
                     description: Name is the name of the resource.
                     type: string
-                  namespace:
-                    description: Namespace is the namespace of the resource.
-                    type: string
                 type: object
               serverRef:
                 description: ServerRef is a reference to the server that owns this
@@ -76,10 +73,6 @@ spec:
                 properties:
                   name:
                     description: Name of the referenced LDAPServer.
-                    type: string
-                  namespace:
-                    description: Namespace is the optional namespace of the referenced
-                      LDAPServer.
                     type: string
                 required:
                 - name

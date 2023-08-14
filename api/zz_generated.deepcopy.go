@@ -32,7 +32,7 @@ func (in *LDAPObjectSpec) DeepCopyInto(out *LDAPObjectSpec) {
 	out.ServerRef = in.ServerRef
 	if in.ParentRef != nil {
 		in, out := &in.ParentRef, &out.ParentRef
-		*out = new(reference.ObjectReference)
+		*out = new(reference.LocalObjectReference)
 		**out = **in
 	}
 }

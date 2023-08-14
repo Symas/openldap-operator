@@ -47,7 +47,7 @@ type LDAPObjectSpec struct {
 	// ServerRef is a reference to the server that owns this object.
 	ServerRef LDAPServerReference `json:"serverRef"`
 	// ParentRef is an optional reference to the parent of this object (typically an organizational unit).
-	ParentRef *reference.ObjectReference `json:"parentRef,omitempty"`
+	ParentRef *reference.LocalObjectReference `json:"parentRef,omitempty"`
 }
 
 // Phase is the current phase of the object.
@@ -77,15 +77,12 @@ type SimpleStatus struct {
 type LDAPServerReference struct {
 	// Name of the referenced LDAPServer.
 	Name string `json:"name"`
-	// Namespace is the optional namespace of the referenced LDAPServer.
-	Namespace string `json:"namespace,omitempty"`
 }
 
 func (ref *LDAPServerReference) Resolve(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, parent runtime.Object) (runtime.Object, error) {
 	objRef := &reference.ObjectReference{
-		Name:      ref.Name,
-		Namespace: ref.Namespace,
-		Kind:      "LDAPServer",
+		Name: ref.Name,
+		Kind: "LDAPServer",
 	}
 
 	return objRef.Resolve(ctx, reader, scheme, parent)

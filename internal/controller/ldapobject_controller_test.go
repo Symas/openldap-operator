@@ -76,7 +76,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 				ServerRef: api.LDAPServerReference{
 					Name: "test-server",
 				},
-				ParentRef: &reference.ObjectReference{
+				ParentRef: &reference.LocalObjectReference{
 					Name: "test-ou",
 					Kind: "LDAPOrganizationalUnit",
 				},

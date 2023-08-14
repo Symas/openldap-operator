@@ -5,7 +5,7 @@ go 1.20
 require (
 	dario.cat/mergo v1.0.0
 	github.com/go-ldap/ldap/v3 v3.4.5
-	github.com/gpu-ninja/operator-utils v0.3.2
+	github.com/gpu-ninja/operator-utils v0.3.3
 	github.com/jsternberg/zap-logfmt v1.3.0
 	github.com/stretchr/testify v1.8.4
 	github.com/testcontainers/testcontainers-go v0.22.0

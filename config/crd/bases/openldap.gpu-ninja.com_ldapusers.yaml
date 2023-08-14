@@ -59,9 +59,6 @@ spec:
                   name:
                     description: Name is the name of the resource.
                     type: string
-                  namespace:
-                    description: Namespace is the namespace of the resource.
-                    type: string
                 type: object
               passwordSecretRef:
                 description: PasswordSecretRef is an optional reference to a secret
@@ -79,10 +76,6 @@ spec:
                 properties:
                   name:
                     description: Name of the referenced LDAPServer.
-                    type: string
-                  namespace:
-                    description: Namespace is the optional namespace of the referenced
-                      LDAPServer.
                     type: string
                 required:
                 - name
