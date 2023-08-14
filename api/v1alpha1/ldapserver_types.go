@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/gpu-ninja/operator-utils/reference"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -82,20 +81,6 @@ type LDAPServerSpec struct {
 	AddressOverride string `json:"addressOverride,omitempty"`
 }
 
-// LDAPServerCondition contains details for the current condition of the LDAPServer.
-type LDAPServerCondition struct {
-	// Type is the type of the condition.
-	Type LDAPServerConditionType `json:"type"`
-	// Status is the status of the condition.
-	Status corev1.ConditionStatus `json:"status"`
-	// LastTransitionTime is the last time the condition transitioned from one status to another.
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
-	Reason string `json:"reason,omitempty"`
-	// Message is a human readable message indicating details about the last transition.
-	Message string `json:"message,omitempty"`
-}
-
 // LDAPServerStatus defines the observed state of the LDAPServer.
 type LDAPServerStatus struct {
 	// Phase is the current state of the LDAP server.
@@ -106,10 +91,9 @@ type LDAPServerStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
 // LDAPServer is an OpenLDAP server.
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type LDAPServer struct {
@@ -120,9 +104,8 @@ type LDAPServer struct {
 	Status LDAPServerStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
 // LDAPServerList contains a list of LDAPServer
+// +kubebuilder:object:root=true
 type LDAPServerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
