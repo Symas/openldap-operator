@@ -43,6 +43,16 @@ spec:
               description:
                 description: Description is an optional description of this group.
                 type: string
+              directoryRef:
+                description: DirectoryRef is a reference to the directory that owns
+                  this object.
+                properties:
+                  name:
+                    description: Name of the referenced LDAPDirectory.
+                    type: string
+                required:
+                - name
+                type: object
               members:
                 description: Members is a list of distinguished names representing
                   the members of this group.
@@ -67,20 +77,10 @@ spec:
                     description: Name is the name of the resource.
                     type: string
                 type: object
-              serverRef:
-                description: ServerRef is a reference to the server that owns this
-                  object.
-                properties:
-                  name:
-                    description: Name of the referenced LDAPServer.
-                    type: string
-                required:
-                - name
-                type: object
             required:
+            - directoryRef
             - members
             - name
-            - serverRef
             type: object
           status:
             description: SimpleStatus is a basic status type that can be reused across

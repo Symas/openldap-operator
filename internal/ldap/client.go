@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package directory
+package ldap
 
 import (
 	"crypto/tls"
@@ -23,11 +23,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-ldap/ldap/v3"
+	goldap "github.com/go-ldap/ldap/v3"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-// Client is an LDAP directory client.
+// Client is an goldap directory client.
 type Client interface {
 	Ping() error
 	GetEntry(dn string, entry any) error
@@ -36,11 +36,11 @@ type Client interface {
 }
 
 type clientImpl struct {
-	serverAddress string
-	caBundle      *x509.CertPool
-	adminUsername string
-	adminPassword string
-	baseDN        string
+	directoryAddress string
+	caBundle         *x509.CertPool
+	adminUsername    string
+	adminPassword    string
+	baseDN           string
 }
 
 // Ping checks if the directory is available and responding to requests.
@@ -51,9 +51,9 @@ func (c *clientImpl) Ping() error {
 	}
 	defer conn.Close()
 
-	searchRequest := ldap.NewSearchRequest(
+	searchRequest := goldap.NewSearchRequest(
 		c.baseDN,
-		ldap.ScopeBaseObject, ldap.DerefAlways, 0, 0, false,
+		goldap.ScopeBaseObject, goldap.DerefAlways, 0, 0, false,
 		"(objectClass=*)",
 		[]string{"1.1"},
 		nil,
@@ -121,15 +121,15 @@ func (c *clientImpl) DeleteEntry(dn string, cascading bool) error {
 
 	if cascading {
 		// Search for child entries
-		searchRequest := ldap.NewSearchRequest(
+		searchRequest := goldap.NewSearchRequest(
 			dn,
-			ldap.ScopeSingleLevel, ldap.NeverDerefAliases, 0, 0, false,
+			goldap.ScopeSingleLevel, goldap.NeverDerefAliases, 0, 0, false,
 			"(objectClass=*)",
 			[]string{"dn"},
 			nil,
 		)
 		searchResult, err := conn.Search(searchRequest)
-		if err != nil && !ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+		if err != nil && !goldap.IsErrorWithCode(err, goldap.LDAPResultNoSuchObject) {
 			return err
 		}
 
@@ -142,9 +142,9 @@ func (c *clientImpl) DeleteEntry(dn string, cascading bool) error {
 		}
 	}
 
-	delRequest := ldap.NewDelRequest(dn, nil)
+	delRequest := goldap.NewDelRequest(dn, nil)
 	err = conn.Del(delRequest)
-	if err != nil && !ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+	if err != nil && !goldap.IsErrorWithCode(err, goldap.LDAPResultNoSuchObject) {
 		return err
 	}
 
@@ -158,9 +158,9 @@ func (c *clientImpl) getOrganizationalUnit(dn string) (*OrganizationalUnit, erro
 	}
 	defer conn.Close()
 
-	searchRequest := ldap.NewSearchRequest(
+	searchRequest := goldap.NewSearchRequest(
 		dn,
-		ldap.ScopeBaseObject, ldap.NeverDerefAliases, 1, 0, false,
+		goldap.ScopeBaseObject, goldap.NeverDerefAliases, 1, 0, false,
 		"(&(objectClass=organizationalUnit))",
 		[]string{"dn", "ou", "description"},
 		nil,
@@ -185,22 +185,22 @@ func (c *clientImpl) createOrUpdateOrganizationalUnit(ou *OrganizationalUnit) (b
 	}
 	defer conn.Close()
 
-	searchRequest := ldap.NewSearchRequest(
+	searchRequest := goldap.NewSearchRequest(
 		ou.DistinguishedName,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		goldap.ScopeWholeSubtree, goldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(objectClass=organizationalUnit)(ou=%s))", ou.Name),
 		[]string{"dn", "ou", "description"},
 		nil,
 	)
 
 	searchResult, err := conn.Search(searchRequest)
-	if err != nil && !ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+	if err != nil && !goldap.IsErrorWithCode(err, goldap.LDAPResultNoSuchObject) {
 		return false, fmt.Errorf("failed to search for organizational unit: %w", err)
 	}
 
 	// If the organizational unit does not exist, create it.
 	if len(searchResult.Entries) == 0 {
-		addRequest := ldap.NewAddRequest(ou.DistinguishedName, nil)
+		addRequest := goldap.NewAddRequest(ou.DistinguishedName, nil)
 		addRequest.Attribute("objectClass", []string{"top", "organizationalUnit"})
 		addRequest.Attribute("ou", []string{ou.Name})
 		if ou.Description != "" {
@@ -216,7 +216,7 @@ func (c *clientImpl) createOrUpdateOrganizationalUnit(ou *OrganizationalUnit) (b
 
 	entry := searchResult.Entries[0]
 
-	modifyRequest := ldap.NewModifyRequest(ou.DistinguishedName, nil)
+	modifyRequest := goldap.NewModifyRequest(ou.DistinguishedName, nil)
 
 	existingDescription := entry.GetAttributeValue("description")
 	optionalAttributeModifications(modifyRequest, "description", existingDescription, ou.Description)
@@ -237,9 +237,9 @@ func (c *clientImpl) getGroup(dn string) (*Group, error) {
 	}
 	defer conn.Close()
 
-	searchRequest := ldap.NewSearchRequest(
+	searchRequest := goldap.NewSearchRequest(
 		dn,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 1, 0, false,
+		goldap.ScopeWholeSubtree, goldap.NeverDerefAliases, 1, 0, false,
 		"(objectClass=groupOfNames)",
 		[]string{"dn", "cn", "description", "member"},
 		nil,
@@ -265,22 +265,22 @@ func (c *clientImpl) createOrUpdateGroup(group *Group) (bool, error) {
 	}
 	defer conn.Close()
 
-	searchRequest := ldap.NewSearchRequest(
+	searchRequest := goldap.NewSearchRequest(
 		group.DistinguishedName,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		goldap.ScopeWholeSubtree, goldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(objectClass=groupOfNames)(cn=%s))", group.Name),
 		[]string{"dn", "cn", "description", "member"},
 		nil,
 	)
 
 	searchResult, err := conn.Search(searchRequest)
-	if err != nil && !ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+	if err != nil && !goldap.IsErrorWithCode(err, goldap.LDAPResultNoSuchObject) {
 		return false, fmt.Errorf("failed to search for group: %w", err)
 	}
 
 	// If the group does not exist, create it.
 	if len(searchResult.Entries) == 0 {
-		addRequest := ldap.NewAddRequest(group.DistinguishedName, nil)
+		addRequest := goldap.NewAddRequest(group.DistinguishedName, nil)
 		addRequest.Attribute("objectClass", []string{"top", "groupOfNames"})
 		addRequest.Attribute("cn", []string{group.Name})
 		addRequest.Attribute("member", group.Members)
@@ -297,7 +297,7 @@ func (c *clientImpl) createOrUpdateGroup(group *Group) (bool, error) {
 
 	entry := searchResult.Entries[0]
 
-	modifyRequest := ldap.NewModifyRequest(group.DistinguishedName, nil)
+	modifyRequest := goldap.NewModifyRequest(group.DistinguishedName, nil)
 
 	existingDescription := entry.GetAttributeValue("description")
 	optionalAttributeModifications(modifyRequest, "description", existingDescription, group.Description)
@@ -323,9 +323,9 @@ func (c *clientImpl) getUser(dn string) (*User, error) {
 	}
 	defer conn.Close()
 
-	searchRequest := ldap.NewSearchRequest(
+	searchRequest := goldap.NewSearchRequest(
 		dn,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 1, 0, false,
+		goldap.ScopeWholeSubtree, goldap.NeverDerefAliases, 1, 0, false,
 		"(objectClass=inetOrgPerson)",
 		[]string{"dn", "uid", "cn", "sn", "mail", "userPassword"},
 		nil,
@@ -353,22 +353,22 @@ func (c *clientImpl) createOrUpdateUser(user *User) (bool, error) {
 	}
 	defer conn.Close()
 
-	searchRequest := ldap.NewSearchRequest(
+	searchRequest := goldap.NewSearchRequest(
 		user.DistinguishedName,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		goldap.ScopeWholeSubtree, goldap.NeverDerefAliases, 0, 0, false,
 		fmt.Sprintf("(&(objectClass=inetOrgPerson)(uid=%s))", user.Username),
 		[]string{"dn", "uid", "cn", "sn", "mail"},
 		nil,
 	)
 
 	searchResult, err := conn.Search(searchRequest)
-	if err != nil && !ldap.IsErrorWithCode(err, ldap.LDAPResultNoSuchObject) {
+	if err != nil && !goldap.IsErrorWithCode(err, goldap.LDAPResultNoSuchObject) {
 		return false, fmt.Errorf("failed to search for user: %w", err)
 	}
 
 	// If the user does not exist, create it.
 	if len(searchResult.Entries) == 0 {
-		addRequest := ldap.NewAddRequest(user.DistinguishedName, nil)
+		addRequest := goldap.NewAddRequest(user.DistinguishedName, nil)
 		addRequest.Attribute("objectClass", []string{"top", "person", "organizationalPerson", "inetOrgPerson"})
 		addRequest.Attribute("uid", []string{user.Username})
 		addRequest.Attribute("cn", []string{user.Name})
@@ -383,7 +383,7 @@ func (c *clientImpl) createOrUpdateUser(user *User) (bool, error) {
 		}
 
 		if user.Password != "" {
-			passwordModifyRequest := ldap.NewPasswordModifyRequest(user.DistinguishedName, "", user.Password)
+			passwordModifyRequest := goldap.NewPasswordModifyRequest(user.DistinguishedName, "", user.Password)
 			if _, err := conn.PasswordModify(passwordModifyRequest); err != nil {
 				return false, fmt.Errorf("failed to set user password: %w", err)
 			}
@@ -394,7 +394,7 @@ func (c *clientImpl) createOrUpdateUser(user *User) (bool, error) {
 
 	entry := searchResult.Entries[0]
 
-	modifyRequest := ldap.NewModifyRequest(user.DistinguishedName, nil)
+	modifyRequest := goldap.NewModifyRequest(user.DistinguishedName, nil)
 
 	existingCommonName := entry.GetAttributeValue("cn")
 	if existingCommonName != user.Name {
@@ -423,7 +423,7 @@ func (c *clientImpl) createOrUpdateUser(user *User) (bool, error) {
 
 	var passwordChanged bool
 	if err := connUser.Bind(user.DistinguishedName, user.Password); err != nil {
-		if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
+		if goldap.IsErrorWithCode(err, goldap.LDAPResultInvalidCredentials) {
 			passwordChanged = true
 		} else {
 			return false, fmt.Errorf("failed to verify password: %w", err)
@@ -431,7 +431,7 @@ func (c *clientImpl) createOrUpdateUser(user *User) (bool, error) {
 	}
 
 	if passwordChanged {
-		passwordModifyRequest := ldap.NewPasswordModifyRequest(user.DistinguishedName, "", user.Password)
+		passwordModifyRequest := goldap.NewPasswordModifyRequest(user.DistinguishedName, "", user.Password)
 		if _, err := conn.PasswordModify(passwordModifyRequest); err != nil {
 			return false, fmt.Errorf("failed to set user password: %w", err)
 		}
@@ -440,24 +440,24 @@ func (c *clientImpl) createOrUpdateUser(user *User) (bool, error) {
 	return false, nil
 }
 
-func (c *clientImpl) connect() (*ldap.Conn, error) {
-	conn, err := ldap.DialURL(c.serverAddress, ldap.DialWithTLSConfig(&tls.Config{
+func (c *clientImpl) connect() (*goldap.Conn, error) {
+	conn, err := goldap.DialURL(c.directoryAddress, goldap.DialWithTLSConfig(&tls.Config{
 		RootCAs: c.caBundle,
 	}))
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to ldap server: %w", err)
+		return nil, fmt.Errorf("failed to connect to ldap directory: %w", err)
 	}
 
 	conn.SetTimeout(5 * time.Second)
 
 	if err := conn.Bind(c.adminUsername, c.adminPassword); err != nil {
-		return nil, fmt.Errorf("failed to bind to ldap server: %w", err)
+		return nil, fmt.Errorf("failed to bind to ldap directory: %w", err)
 	}
 
 	return conn, nil
 }
 
-func optionalAttributeModifications(modifyRequest *ldap.ModifyRequest, attributeName string, existing, desired string) {
+func optionalAttributeModifications(modifyRequest *goldap.ModifyRequest, attributeName string, existing, desired string) {
 	if desired == "" {
 		if existing != "" {
 			modifyRequest.Delete(attributeName, []string{})

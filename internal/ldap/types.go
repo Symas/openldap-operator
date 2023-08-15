@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package directory
+package ldap
 
 type Entry interface {
 	*OrganizationalUnit | *Group | *User

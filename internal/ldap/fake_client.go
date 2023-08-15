@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package directory
+package ldap
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func (b *fakeClientBuilder) WithScheme(_ *runtime.Scheme) ClientBuilder {
 	return b
 }
 
-func (b *fakeClientBuilder) WithServer(_ *openldapv1alpha1.LDAPServer) ClientBuilder {
+func (b *fakeClientBuilder) WithDirectory(_ *openldapv1alpha1.LDAPDirectory) ClientBuilder {
 	return b
 }
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package directory_test
+package ldap_test
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/directory"
+	"github.com/gpu-ninja/openldap-operator/internal/ldap"
 	"github.com/gpu-ninja/operator-utils/name"
 	"github.com/gpu-ninja/operator-utils/reference"
 	"github.com/stretchr/testify/assert"
@@ -99,7 +99,7 @@ func TestClient(t *testing.T) {
 		WaitingFor: wait.ForExposedPort(),
 	}
 
-	// Start the server.
+	// Start the openldap directory.
 	c, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
@@ -111,18 +111,18 @@ func TestClient(t *testing.T) {
 		}
 	}()
 
-	server := openldapv1alpha1.LDAPServer{
+	directory := openldapv1alpha1.LDAPDirectory{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "default",
 		},
-		Spec: openldapv1alpha1.LDAPServerSpec{
+		Spec: openldapv1alpha1.LDAPDirectorySpec{
 			Domain: "example.com",
 			AdminPasswordSecretRef: reference.LocalSecretReference{
 				Name: "admin-password",
 			},
 			CertificateSecretRef: reference.LocalSecretReference{
-				Name: "server-cert",
+				Name: "directory-cert",
 			},
 		},
 	}
@@ -138,7 +138,7 @@ func TestClient(t *testing.T) {
 		},
 	}, &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "server-cert",
+			Name:      "directory-cert",
 			Namespace: "default",
 		},
 		Data: map[string][]byte{
@@ -146,28 +146,29 @@ func TestClient(t *testing.T) {
 		},
 	}).Build()
 
-	baseDN, err := server.GetDistinguishedName(ctx, client, scheme.Scheme)
+	baseDN, err := directory.GetDistinguishedName(ctx, client, scheme.Scheme)
 	require.NoError(t, err)
 
 	endpoint, err := c.Endpoint(ctx, "")
 	require.NoError(t, err)
 
-	server.Spec.AddressOverride = fmt.Sprintf("ldaps://%s", endpoint)
+	directory.Spec.AddressOverride = fmt.Sprintf("ldaps://%s", endpoint)
 
-	directoryClient, err := directory.NewClientBuilder().
+	ldapClient, err := ldap.NewClientBuilder().
 		WithReader(client).
 		WithScheme(scheme.Scheme).
-		WithServer(&server).Build(ctx)
+		WithDirectory(&directory).
+		Build(ctx)
 	require.NoError(t, err)
 
-	err = directoryClient.Ping()
+	err = ldapClient.Ping()
 	require.NoError(t, err)
 
 	t.Run("Organizational Units", func(t *testing.T) {
 		organizationalUnitName := name.Generate("users")
 		dn := fmt.Sprintf("ou=%s,%s", organizationalUnitName, baseDN)
 
-		created, err := directoryClient.CreateOrUpdateEntry(&directory.OrganizationalUnit{
+		created, err := ldapClient.CreateOrUpdateEntry(&ldap.OrganizationalUnit{
 			DistinguishedName: dn,
 			Name:              organizationalUnitName,
 			Description:       "Test Users",
@@ -176,7 +177,7 @@ func TestClient(t *testing.T) {
 		assert.NoError(t, err)
 
 		username := name.Generate("user")
-		created, err = directoryClient.CreateOrUpdateEntry(&directory.User{
+		created, err = ldapClient.CreateOrUpdateEntry(&ldap.User{
 			DistinguishedName: fmt.Sprintf("uid=%s,%s", username, dn),
 			Username:          username,
 			Name:              "Test User",
@@ -185,8 +186,8 @@ func TestClient(t *testing.T) {
 		assert.True(t, created)
 		assert.NoError(t, err)
 
-		var ou directory.OrganizationalUnit
-		err = directoryClient.GetEntry(dn, &ou)
+		var ou ldap.OrganizationalUnit
+		err = ldapClient.GetEntry(dn, &ou)
 		assert.NoError(t, err)
 
 		assert.Equal(t, dn, ou.DistinguishedName)
@@ -194,22 +195,22 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, "Test Users", ou.Description)
 
 		// Remove the description.
-		created, err = directoryClient.CreateOrUpdateEntry(&directory.OrganizationalUnit{
+		created, err = ldapClient.CreateOrUpdateEntry(&ldap.OrganizationalUnit{
 			DistinguishedName: dn,
 			Name:              organizationalUnitName,
 		})
 		assert.False(t, created)
 		assert.NoError(t, err)
 
-		err = directoryClient.GetEntry(dn, &ou)
+		err = ldapClient.GetEntry(dn, &ou)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "", ou.Description)
 
-		err = directoryClient.DeleteEntry(dn, true)
+		err = ldapClient.DeleteEntry(dn, true)
 		assert.NoError(t, err)
 
-		err = directoryClient.GetEntry(dn, &ou)
+		err = ldapClient.GetEntry(dn, &ou)
 		assert.Error(t, err)
 	})
 
@@ -217,7 +218,7 @@ func TestClient(t *testing.T) {
 		groupName := name.Generate("admins")
 		dn := fmt.Sprintf("cn=%s,%s", groupName, baseDN)
 
-		created, err := directoryClient.CreateOrUpdateEntry(&directory.Group{
+		created, err := ldapClient.CreateOrUpdateEntry(&ldap.Group{
 			DistinguishedName: dn,
 			Name:              groupName,
 			Description:       "Test Admins",
@@ -226,8 +227,8 @@ func TestClient(t *testing.T) {
 		assert.True(t, created)
 		assert.NoError(t, err)
 
-		var group directory.Group
-		err = directoryClient.GetEntry(dn, &group)
+		var group ldap.Group
+		err = ldapClient.GetEntry(dn, &group)
 		assert.NoError(t, err)
 
 		assert.Equal(t, dn, group.DistinguishedName)
@@ -236,7 +237,7 @@ func TestClient(t *testing.T) {
 		assert.Len(t, group.Members, 2)
 
 		// Remove the description and a member.
-		created, err = directoryClient.CreateOrUpdateEntry(&directory.Group{
+		created, err = ldapClient.CreateOrUpdateEntry(&ldap.Group{
 			DistinguishedName: dn,
 			Name:              groupName,
 			Members: []string{
@@ -246,16 +247,16 @@ func TestClient(t *testing.T) {
 		assert.False(t, created)
 		assert.NoError(t, err)
 
-		err = directoryClient.GetEntry(dn, &group)
+		err = ldapClient.GetEntry(dn, &group)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "", group.Description)
 		assert.Len(t, group.Members, 1)
 
-		err = directoryClient.DeleteEntry(dn, false)
+		err = ldapClient.DeleteEntry(dn, false)
 		assert.NoError(t, err)
 
-		err = directoryClient.GetEntry(dn, &group)
+		err = ldapClient.GetEntry(dn, &group)
 		assert.Error(t, err)
 	})
 
@@ -263,7 +264,7 @@ func TestClient(t *testing.T) {
 		username := name.Generate("other")
 		dn := fmt.Sprintf("uid=%s,%s", username, baseDN)
 
-		created, err := directoryClient.CreateOrUpdateEntry(&directory.User{
+		created, err := ldapClient.CreateOrUpdateEntry(&ldap.User{
 			DistinguishedName: dn,
 			Username:          username,
 			Name:              "John Doe",
@@ -274,8 +275,8 @@ func TestClient(t *testing.T) {
 		assert.True(t, created)
 		assert.NoError(t, err)
 
-		var user directory.User
-		err = directoryClient.GetEntry(dn, &user)
+		var user ldap.User
+		err = ldapClient.GetEntry(dn, &user)
 		assert.NoError(t, err)
 
 		assert.Equal(t, dn, user.DistinguishedName)
@@ -288,7 +289,7 @@ func TestClient(t *testing.T) {
 		passwordHashBeforeModify := user.Password
 
 		// Remove the email.
-		created, err = directoryClient.CreateOrUpdateEntry(&directory.User{
+		created, err = ldapClient.CreateOrUpdateEntry(&ldap.User{
 			DistinguishedName: dn,
 			Username:          username,
 			Name:              "John Doe",
@@ -298,16 +299,16 @@ func TestClient(t *testing.T) {
 		assert.False(t, created)
 		assert.NoError(t, err)
 
-		err = directoryClient.GetEntry(dn, &user)
+		err = ldapClient.GetEntry(dn, &user)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "", user.Email)
 		assert.Equal(t, passwordHashBeforeModify, user.Password)
 
-		err = directoryClient.DeleteEntry(dn, false)
+		err = ldapClient.DeleteEntry(dn, false)
 		assert.NoError(t, err)
 
-		err = directoryClient.GetEntry(dn, &user)
+		err = ldapClient.GetEntry(dn, &user)
 		assert.Error(t, err)
 	})
 }

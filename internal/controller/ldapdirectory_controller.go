@@ -55,24 +55,24 @@ import (
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapservers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapservers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapservers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapdirectories,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapdirectories/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapdirectories/finalizers,verbs=update
 
-// LDAPServerReconciler reconciles a LDAPServer object
-type LDAPServerReconciler struct {
+// LDAPDirectoryReconciler reconciles a LDAPDirectory object
+type LDAPDirectoryReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
 	EventRecorder record.EventRecorder
 }
 
-func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *LDAPDirectoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := zaplogr.FromContext(ctx)
 
-	logger.Info("Reconciling LDAP Server")
+	logger.Info("Reconciling")
 
-	var server openldapv1alpha1.LDAPServer
-	if err := r.Get(ctx, req.NamespacedName, &server); err != nil {
+	var directory openldapv1alpha1.LDAPDirectory
+	if err := r.Get(ctx, req.NamespacedName, &directory); err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
@@ -80,20 +80,20 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	statefulSetNamespaceName := types.NamespacedName{Name: server.Name, Namespace: server.Namespace}
+	statefulSetNamespaceName := types.NamespacedName{Name: directory.Name, Namespace: directory.Namespace}
 	statefulSet := appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      statefulSetNamespaceName.Name,
 			Namespace: statefulSetNamespaceName.Namespace,
-			Labels:    server.ObjectMeta.Labels,
+			Labels:    directory.ObjectMeta.Labels,
 		},
 	}
 
-	if !controllerutil.ContainsFinalizer(&server, constants.FinalizerName) {
+	if !controllerutil.ContainsFinalizer(&directory, constants.FinalizerName) {
 		logger.Info("Adding Finalizer")
 
-		_, err := controllerutil.CreateOrPatch(ctx, r.Client, &server, func() error {
-			controllerutil.AddFinalizer(&server, constants.FinalizerName)
+		_, err := controllerutil.CreateOrPatch(ctx, r.Client, &directory, func() error {
+			controllerutil.AddFinalizer(&directory, constants.FinalizerName)
 
 			return nil
 		})
@@ -102,14 +102,14 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	if !server.ObjectMeta.DeletionTimestamp.IsZero() {
-		logger.Info("Deleting LDAP Server")
+	if !directory.ObjectMeta.DeletionTimestamp.IsZero() {
+		logger.Info("Deleting")
 
-		if controllerutil.ContainsFinalizer(&server, constants.FinalizerName) {
+		if controllerutil.ContainsFinalizer(&directory, constants.FinalizerName) {
 			logger.Info("Removing Finalizer")
 
-			_, err := controllerutil.CreateOrPatch(ctx, r.Client, &server, func() error {
-				controllerutil.RemoveFinalizer(&server, constants.FinalizerName)
+			_, err := controllerutil.CreateOrPatch(ctx, r.Client, &directory, func() error {
+				controllerutil.RemoveFinalizer(&directory, constants.FinalizerName)
 
 				return nil
 			})
@@ -122,14 +122,14 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Make sure all references are resolvable.
-	if err := server.ResolveReferences(ctx, r.Client, r.Scheme); err != nil {
+	if err := directory.ResolveReferences(ctx, r.Client, r.Scheme); err != nil {
 		if retryable.IsRetryable(err) {
 			logger.Info("Not all references are resolvable, requeuing")
 
-			r.EventRecorder.Event(&server, corev1.EventTypeWarning,
+			r.EventRecorder.Event(&directory, corev1.EventTypeWarning,
 				"NotReady", "Not all references are resolvable")
 
-			if err := r.markPending(ctx, &server); err != nil {
+			if err := r.markPending(ctx, &directory); err != nil {
 				return ctrl.Result{}, err
 			}
 
@@ -138,22 +138,22 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 		logger.Error("Failed to resolve references", zap.Error(err))
 
-		r.EventRecorder.Eventf(&server, corev1.EventTypeWarning,
+		r.EventRecorder.Eventf(&directory, corev1.EventTypeWarning,
 			"Failed", "Failed to resolve references: %s", err)
 
-		r.markFailed(ctx, &server,
+		r.markFailed(ctx, &directory,
 			fmt.Errorf("failed to resolve references: %w", err))
 
 		return ctrl.Result{}, nil
 	}
 
-	if server.Status.Phase == openldapv1alpha1.LDAPServerPhaseFailed {
-		logger.Info("LDAP Server is in failed state, ignoring")
+	if directory.Status.Phase == openldapv1alpha1.LDAPDirectoryPhaseFailed {
+		logger.Info("Directory is in failed state, ignoring")
 
 		return ctrl.Result{}, nil
 	}
 
-	logger.Info("Creating or updating LDAP Server")
+	logger.Info("Creating or updating")
 
 	var creatingStatefulSet bool
 	if err := r.Get(ctx, statefulSetNamespaceName, &statefulSet); err != nil && errors.IsNotFound(err) {
@@ -161,11 +161,11 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	statefulSetOpResult, err := controllerutil.CreateOrPatch(ctx, r.Client, &statefulSet, func() error {
-		if err := controllerutil.SetOwnerReference(&server, &statefulSet, r.Scheme); err != nil {
+		if err := controllerutil.SetOwnerReference(&directory, &statefulSet, r.Scheme); err != nil {
 			return fmt.Errorf("failed to set owner reference: %w", err)
 		}
 
-		storageSize, err := resource.ParseQuantity(server.Spec.Storage.Size)
+		storageSize, err := resource.ParseQuantity(directory.Spec.Storage.Size)
 		if err != nil {
 			return fmt.Errorf("failed to parse requested storage size: %w", err)
 		}
@@ -173,18 +173,18 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		envVars := []corev1.EnvVar{
 			{
 				Name:  "LDAP_DOMAIN",
-				Value: server.Spec.Domain,
+				Value: directory.Spec.Domain,
 			},
 			{
 				Name:  "LDAP_ORGANIZATION",
-				Value: server.Spec.Organization,
+				Value: directory.Spec.Organization,
 			},
 			{
 				Name: "LDAP_ADMIN_PASSWORD",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: server.Spec.AdminPasswordSecretRef.Name,
+							Name: directory.Spec.AdminPasswordSecretRef.Name,
 						},
 						Key: "password",
 					},
@@ -192,16 +192,16 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			},
 		}
 
-		if server.Spec.FileDescriptorLimit != nil {
+		if directory.Spec.FileDescriptorLimit != nil {
 			envVars = append(envVars, corev1.EnvVar{
 				Name:  "LDAP_NOFILE",
-				Value: strconv.Itoa(*server.Spec.FileDescriptorLimit),
+				Value: strconv.Itoa(*directory.Spec.FileDescriptorLimit),
 			})
 		}
-		if server.Spec.DebugLevel != nil {
+		if directory.Spec.DebugLevel != nil {
 			envVars = append(envVars, corev1.EnvVar{
 				Name:  "LDAP_DEBUG_LEVEL",
-				Value: strconv.Itoa(*server.Spec.DebugLevel),
+				Value: strconv.Itoa(*directory.Spec.DebugLevel),
 			})
 		}
 
@@ -212,14 +212,14 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app.kubernetes.io/name":     "openldap",
-					"app.kubernetes.io/instance": server.Name,
+					"app.kubernetes.io/instance": directory.Name,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app.kubernetes.io/name":     "openldap",
-						"app.kubernetes.io/instance": server.Name,
+						"app.kubernetes.io/instance": directory.Name,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -231,7 +231,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					InitContainers: []corev1.Container{
 						{
 							Name:  "openldap-init",
-							Image: server.Spec.Image,
+							Image: directory.Spec.Image,
 							Command: []string{
 								"/bootstrap.sh",
 							},
@@ -251,7 +251,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					Containers: []corev1.Container{
 						{
 							Name:  "openldap",
-							Image: server.Spec.Image,
+							Image: directory.Spec.Image,
 							Env:   envVars,
 							Ports: []corev1.ContainerPort{
 								{
@@ -300,7 +300,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 							Name: "openldap-certs",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName:  server.Spec.CertificateSecretRef.Name,
+									SecretName:  directory.Spec.CertificateSecretRef.Name,
 									DefaultMode: ptr.To(int32(0o400)),
 								},
 							},
@@ -329,7 +329,7 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 						Name: "openldap-data",
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: server.Spec.Storage.StorageClassName,
+						StorageClassName: directory.Spec.Storage.StorageClassName,
 						AccessModes: []corev1.PersistentVolumeAccessMode{
 							corev1.ReadWriteOnce,
 						},
@@ -352,32 +352,32 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return nil
 	})
 	if err != nil {
-		logger.Error("Failed to reconcile openldap statefulset", zap.Error(err))
+		logger.Error("Failed to reconcile statefulset", zap.Error(err))
 
-		r.EventRecorder.Eventf(&server, corev1.EventTypeWarning,
-			"Failed", "Failed to reconcile openldap statefulset: %s", err)
+		r.EventRecorder.Eventf(&directory, corev1.EventTypeWarning,
+			"Failed", "Failed to reconcile statefulset: %s", err)
 
-		r.markFailed(ctx, &server,
-			fmt.Errorf("failed to reconcile openldap statefulset: %w", err))
+		r.markFailed(ctx, &directory,
+			fmt.Errorf("failed to reconcile statefulset: %w", err))
 
 		return ctrl.Result{}, nil
 	}
 
 	if statefulSetOpResult != controllerutil.OperationResultNone {
-		logger.Info("OpenLDAP StatefulSet successfully reconciled, marking as pending",
+		logger.Info("StatefulSet successfully reconciled, marking as pending",
 			zap.String("operation", string(statefulSetOpResult)))
 
-		if err := r.markPending(ctx, &server); err != nil {
+		if err := r.markPending(ctx, &directory); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	serviceNamespaceName := types.NamespacedName{Name: server.Name, Namespace: server.Namespace}
+	serviceNamespaceName := types.NamespacedName{Name: directory.Name, Namespace: directory.Namespace}
 	service := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceNamespaceName.Name,
 			Namespace: serviceNamespaceName.Namespace,
-			Labels:    server.ObjectMeta.Labels,
+			Labels:    directory.ObjectMeta.Labels,
 		},
 	}
 
@@ -388,14 +388,14 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	serviceOpResult, err := controllerutil.CreateOrPatch(ctx, r.Client, &service, func() error {
-		if err := controllerutil.SetControllerReference(&server, &service, r.Scheme); err != nil {
+		if err := controllerutil.SetControllerReference(&directory, &service, r.Scheme); err != nil {
 			return fmt.Errorf("failed to set controller reference: %w", err)
 		}
 
 		spec := corev1.ServiceSpec{
 			Selector: map[string]string{
 				"app.kubernetes.io/name":     "openldap",
-				"app.kubernetes.io/instance": server.Name,
+				"app.kubernetes.io/instance": directory.Name,
 			},
 			Ports: []corev1.ServicePort{
 				{
@@ -418,40 +418,40 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return nil
 	})
 	if err != nil {
-		logger.Error("Failed to reconcile openldap service", zap.Error(err))
+		logger.Error("Failed to reconcile service", zap.Error(err))
 
-		r.EventRecorder.Eventf(&server, corev1.EventTypeWarning,
-			"Failed", "Failed to reconcile openldap statefulset: %s", err)
+		r.EventRecorder.Eventf(&directory, corev1.EventTypeWarning,
+			"Failed", "Failed to reconcile service: %s", err)
 
-		r.markFailed(ctx, &server,
-			fmt.Errorf("failed to reconcile openldap service: %w", err))
+		r.markFailed(ctx, &directory,
+			fmt.Errorf("failed to reconcile service: %w", err))
 
 		return ctrl.Result{}, nil
 	}
 
 	if serviceOpResult != controllerutil.OperationResultNone {
-		logger.Info("OpenLDAP Service successfully reconciled",
+		logger.Info("Service successfully reconciled",
 			zap.String("operation", string(serviceOpResult)))
 	}
 
 	if statefulSet.Status.ReadyReplicas != *statefulSet.Spec.Replicas {
 		logger.Info("Waiting for StatefulSet to become ready")
 
-		r.EventRecorder.Event(&server, corev1.EventTypeNormal,
+		r.EventRecorder.Event(&directory, corev1.EventTypeNormal,
 			"Pending", "Waiting for statefulset to become ready")
 
-		if err := r.markPending(ctx, &server); err != nil {
+		if err := r.markPending(ctx, &directory); err != nil {
 			return ctrl.Result{}, err
 		}
 
 		return ctrl.Result{RequeueAfter: constants.ReconcileRetryInterval}, nil
 	}
 
-	if server.Status.Phase != openldapv1alpha1.LDAPServerPhaseReady {
-		r.EventRecorder.Event(&server, corev1.EventTypeNormal,
+	if directory.Status.Phase != openldapv1alpha1.LDAPDirectoryPhaseReady {
+		r.EventRecorder.Event(&directory, corev1.EventTypeNormal,
 			"Created", "Successfully created")
 
-		if err := r.markReady(ctx, &server); err != nil {
+		if err := r.markReady(ctx, &directory); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -459,32 +459,28 @@ func (r *LDAPServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *LDAPServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *LDAPDirectoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		Named("ldapserver-controller").
-		For(&openldapv1alpha1.LDAPServer{}).
+		Named("ldapdirectory-controller").
+		For(&openldapv1alpha1.LDAPDirectory{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
 		Complete(r)
 }
 
-func (r *LDAPServerReconciler) markPending(ctx context.Context, server *openldapv1alpha1.LDAPServer) error {
-	updatedConditions := make([]metav1.Condition, len(server.Status.Conditions))
-	copy(updatedConditions, server.Status.Conditions)
+func (r *LDAPDirectoryReconciler) markPending(ctx context.Context, directory *openldapv1alpha1.LDAPDirectory) error {
+	_, err := controllerutil.CreateOrPatch(ctx, r.Client, directory, func() error {
+		directory.Status.ObservedGeneration = directory.Generation
+		directory.Status.Phase = openldapv1alpha1.LDAPDirectoryPhasePending
 
-	meta.SetStatusCondition(&updatedConditions, metav1.Condition{
-		Type:    string(openldapv1alpha1.LDAPServerConditionTypePending),
-		Status:  metav1.ConditionTrue,
-		Reason:  "Pending",
-		Message: "LDAP Server is pending",
-	})
-
-	_, err := controllerutil.CreateOrPatch(ctx, r.Client, server, func() error {
-		server.Status.ObservedGeneration = server.Generation
-		server.Status.Phase = openldapv1alpha1.LDAPServerPhasePending
-		server.Status.Conditions = updatedConditions
+		meta.SetStatusCondition(&directory.Status.Conditions, metav1.Condition{
+			Type:               string(openldapv1alpha1.LDAPDirectoryConditionTypePending),
+			Status:             metav1.ConditionTrue,
+			ObservedGeneration: directory.Generation,
+			Reason:             "Pending",
+			Message:            "LDAP directory is pending",
+		})
 
 		return nil
 	})
@@ -495,21 +491,18 @@ func (r *LDAPServerReconciler) markPending(ctx context.Context, server *openldap
 	return nil
 }
 
-func (r *LDAPServerReconciler) markReady(ctx context.Context, server *openldapv1alpha1.LDAPServer) error {
-	updatedConditions := make([]metav1.Condition, len(server.Status.Conditions))
-	copy(updatedConditions, server.Status.Conditions)
+func (r *LDAPDirectoryReconciler) markReady(ctx context.Context, directory *openldapv1alpha1.LDAPDirectory) error {
+	_, err := controllerutil.CreateOrPatch(ctx, r.Client, directory, func() error {
+		directory.Status.ObservedGeneration = directory.Generation
+		directory.Status.Phase = openldapv1alpha1.LDAPDirectoryPhaseReady
 
-	meta.SetStatusCondition(&updatedConditions, metav1.Condition{
-		Type:    string(openldapv1alpha1.LDAPServerPhaseReady),
-		Status:  metav1.ConditionTrue,
-		Reason:  "Ready",
-		Message: "LDAP Server is ready",
-	})
-
-	_, err := controllerutil.CreateOrPatch(ctx, r.Client, server, func() error {
-		server.Status.ObservedGeneration = server.Generation
-		server.Status.Phase = openldapv1alpha1.LDAPServerPhaseReady
-		server.Status.Conditions = updatedConditions
+		meta.SetStatusCondition(&directory.Status.Conditions, metav1.Condition{
+			Type:               string(openldapv1alpha1.LDAPDirectoryConditionTypeReady),
+			Status:             metav1.ConditionTrue,
+			ObservedGeneration: directory.Generation,
+			Reason:             "Ready",
+			Message:            "LDAP directory is ready",
+		})
 
 		return nil
 	})
@@ -520,23 +513,20 @@ func (r *LDAPServerReconciler) markReady(ctx context.Context, server *openldapv1
 	return nil
 }
 
-func (r *LDAPServerReconciler) markFailed(ctx context.Context, server *openldapv1alpha1.LDAPServer, err error) {
+func (r *LDAPDirectoryReconciler) markFailed(ctx context.Context, directory *openldapv1alpha1.LDAPDirectory, err error) {
 	logger := zaplogr.FromContext(ctx)
 
-	updatedConditions := make([]metav1.Condition, len(server.Status.Conditions))
-	copy(updatedConditions, server.Status.Conditions)
+	_, updateErr := controllerutil.CreateOrPatch(ctx, r.Client, directory, func() error {
+		directory.Status.ObservedGeneration = directory.Generation
+		directory.Status.Phase = openldapv1alpha1.LDAPDirectoryPhaseFailed
 
-	meta.SetStatusCondition(&updatedConditions, metav1.Condition{
-		Type:    string(openldapv1alpha1.LDAPServerConditionTypeFailed),
-		Status:  metav1.ConditionTrue,
-		Reason:  "Failed",
-		Message: err.Error(),
-	})
-
-	_, updateErr := controllerutil.CreateOrPatch(ctx, r.Client, server, func() error {
-		server.Status.ObservedGeneration = server.Generation
-		server.Status.Phase = openldapv1alpha1.LDAPServerPhaseFailed
-		server.Status.Conditions = updatedConditions
+		meta.SetStatusCondition(&directory.Status.Conditions, metav1.Condition{
+			Type:               string(openldapv1alpha1.LDAPDirectoryConditionTypeFailed),
+			Status:             metav1.ConditionTrue,
+			ObservedGeneration: directory.Generation,
+			Reason:             "Failed",
+			Message:            err.Error(),
+		})
 
 		return nil
 	})

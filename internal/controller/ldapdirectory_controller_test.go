@@ -45,7 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func TestLDAPServerReconciler(t *testing.T) {
+func TestLDAPDirectoryReconciler(t *testing.T) {
 	ctrl.SetLogger(zaplogr.New(zaptest.NewLogger(t)))
 
 	scheme := runtime.NewScheme()
@@ -59,12 +59,12 @@ func TestLDAPServerReconciler(t *testing.T) {
 	err = openldapv1alpha1.AddToScheme(scheme)
 	require.NoError(t, err)
 
-	server := &openldapv1alpha1.LDAPServer{
+	directory := &openldapv1alpha1.LDAPDirectory{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "default",
 		},
-		Spec: openldapv1alpha1.LDAPServerSpec{
+		Spec: openldapv1alpha1.LDAPDirectorySpec{
 			Image:        "ghcr.io/gpu-ninja/openldap-operator/openldap:latest",
 			Domain:       "example.com",
 			Organization: "Acme Widgets Inc.",
@@ -74,13 +74,13 @@ func TestLDAPServerReconciler(t *testing.T) {
 			CertificateSecretRef: reference.LocalSecretReference{
 				Name: "demo-tls",
 			},
-			Storage: openldapv1alpha1.LDAPServerStorageSpec{
+			Storage: openldapv1alpha1.LDAPDirectoryStorageSpec{
 				Size: "1Gi",
 			},
 		},
 	}
 
-	serverCertificate := &corev1.Secret{
+	directoryCertificate := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "demo-tls",
 			Namespace: "default",
@@ -111,7 +111,7 @@ func TestLDAPServerReconciler(t *testing.T) {
 		},
 	}
 
-	r := &controller.LDAPServerReconciler{
+	r := &controller.LDAPDirectoryReconciler{
 		Scheme: scheme,
 	}
 
@@ -125,15 +125,15 @@ func TestLDAPServerReconciler(t *testing.T) {
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(server, serverCertificate, adminPassword).
-			WithStatusSubresource(server).
+			WithObjects(directory, directoryCertificate, adminPassword).
+			WithStatusSubresource(directory).
 			WithInterceptorFuncs(interceptorFuncs).
 			Build()
 
 		resp, err := r.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      server.Name,
-				Namespace: server.Namespace,
+				Name:      directory.Name,
+				Namespace: directory.Namespace,
 			},
 		})
 		require.NoError(t, err)
@@ -143,24 +143,24 @@ func TestLDAPServerReconciler(t *testing.T) {
 		event := <-eventRecorder.Events
 		assert.Equal(t, "Normal Pending Waiting for statefulset to become ready", event)
 
-		updatedServer := server.DeepCopy()
-		err = subResourceClient.Get(ctx, server, updatedServer)
+		updatedDirectory := directory.DeepCopy()
+		err = subResourceClient.Get(ctx, directory, updatedDirectory)
 		require.NoError(t, err)
 
-		assert.Equal(t, openldapv1alpha1.LDAPServerPhasePending, updatedServer.Status.Phase)
-		assert.Len(t, updatedServer.Status.Conditions, 1)
+		assert.Equal(t, openldapv1alpha1.LDAPDirectoryPhasePending, updatedDirectory.Status.Phase)
+		assert.Len(t, updatedDirectory.Status.Conditions, 1)
 
 		var svc corev1.Service
 		err = r.Client.Get(ctx, types.NamespacedName{
-			Name:      server.Name,
-			Namespace: server.Namespace,
+			Name:      directory.Name,
+			Namespace: directory.Namespace,
 		}, &svc)
 		require.NoError(t, err)
 
 		var sts appsv1.StatefulSet
 		err = r.Client.Get(ctx, types.NamespacedName{
-			Name:      server.Name,
-			Namespace: server.Namespace,
+			Name:      directory.Name,
+			Namespace: directory.Namespace,
 		}, &sts)
 		require.NoError(t, err)
 
@@ -168,15 +168,15 @@ func TestLDAPServerReconciler(t *testing.T) {
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(updatedServer, serverCertificate, adminPassword, &sts).
-			WithStatusSubresource(updatedServer, &sts).
+			WithObjects(updatedDirectory, directoryCertificate, adminPassword, &sts).
+			WithStatusSubresource(updatedDirectory, &sts).
 			WithInterceptorFuncs(interceptorFuncs).
 			Build()
 
 		resp, err = r.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      server.Name,
-				Namespace: server.Namespace,
+				Name:      directory.Name,
+				Namespace: directory.Namespace,
 			},
 		})
 		require.NoError(t, err)
@@ -186,32 +186,32 @@ func TestLDAPServerReconciler(t *testing.T) {
 		event = <-eventRecorder.Events
 		assert.Equal(t, "Normal Created Successfully created", event)
 
-		updatedServer = server.DeepCopy()
-		err = subResourceClient.Get(ctx, server, updatedServer)
+		updatedDirectory = directory.DeepCopy()
+		err = subResourceClient.Get(ctx, directory, updatedDirectory)
 		require.NoError(t, err)
 
-		assert.Equal(t, openldapv1alpha1.LDAPServerPhaseReady, updatedServer.Status.Phase)
-		assert.Len(t, updatedServer.Status.Conditions, 2)
+		assert.Equal(t, openldapv1alpha1.LDAPDirectoryPhaseReady, updatedDirectory.Status.Phase)
+		assert.Len(t, updatedDirectory.Status.Conditions, 2)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		deletingServer := server.DeepCopy()
-		deletingServer.DeletionTimestamp = &metav1.Time{Time: metav1.Now().Add(-1 * time.Second)}
-		deletingServer.Finalizers = []string{constants.FinalizerName}
+		deletingDirectory := directory.DeepCopy()
+		deletingDirectory.DeletionTimestamp = &metav1.Time{Time: metav1.Now().Add(-1 * time.Second)}
+		deletingDirectory.Finalizers = []string{constants.FinalizerName}
 
 		eventRecorder := record.NewFakeRecorder(2)
 		r.EventRecorder = eventRecorder
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(deletingServer, serverCertificate, adminPassword).
-			WithStatusSubresource(deletingServer).
+			WithObjects(deletingDirectory, directoryCertificate, adminPassword).
+			WithStatusSubresource(deletingDirectory).
 			Build()
 
 		resp, err := r.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      server.Name,
-				Namespace: server.Namespace,
+				Name:      directory.Name,
+				Namespace: directory.Namespace,
 			},
 		})
 		require.NoError(t, err)
@@ -228,15 +228,15 @@ func TestLDAPServerReconciler(t *testing.T) {
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(server). // note the missing secrets
-			WithStatusSubresource(server).
+			WithObjects(directory). // note the missing secrets
+			WithStatusSubresource(directory).
 			WithInterceptorFuncs(interceptorFuncs).
 			Build()
 
 		resp, err := r.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      server.Name,
-				Namespace: server.Namespace,
+				Name:      directory.Name,
+				Namespace: directory.Namespace,
 			},
 		})
 		require.NoError(t, err)
@@ -246,12 +246,12 @@ func TestLDAPServerReconciler(t *testing.T) {
 		event := <-eventRecorder.Events
 		assert.Equal(t, "Warning NotReady Not all references are resolvable", event)
 
-		updatedServer := server.DeepCopy()
-		err = subResourceClient.Get(ctx, server, updatedServer)
+		updatedDirectory := directory.DeepCopy()
+		err = subResourceClient.Get(ctx, directory, updatedDirectory)
 		require.NoError(t, err)
 
-		assert.Equal(t, openldapv1alpha1.LDAPServerPhasePending, updatedServer.Status.Phase)
-		assert.Len(t, updatedServer.Status.Conditions, 1)
+		assert.Equal(t, openldapv1alpha1.LDAPDirectoryPhasePending, updatedDirectory.Status.Phase)
+		assert.Len(t, updatedDirectory.Status.Conditions, 1)
 	})
 
 	t.Run("Failure", func(t *testing.T) {
@@ -271,15 +271,15 @@ func TestLDAPServerReconciler(t *testing.T) {
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(server, serverCertificate, adminPassword).
-			WithStatusSubresource(server).
+			WithObjects(directory, directoryCertificate, adminPassword).
+			WithStatusSubresource(directory).
 			WithInterceptorFuncs(failOnStatefulSets).
 			Build()
 
 		resp, err := r.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      server.Name,
-				Namespace: server.Namespace,
+				Name:      directory.Name,
+				Namespace: directory.Namespace,
 			},
 		})
 		require.NoError(t, err)
@@ -287,12 +287,12 @@ func TestLDAPServerReconciler(t *testing.T) {
 
 		require.Len(t, eventRecorder.Events, 1)
 		event := <-eventRecorder.Events
-		assert.Equal(t, "Warning Failed Failed to reconcile openldap statefulset: bang", event)
+		assert.Equal(t, "Warning Failed Failed to reconcile statefulset: bang", event)
 
-		updatedServer := server.DeepCopy()
-		err = subResourceClient.Get(ctx, server, updatedServer)
+		updatedDirectory := directory.DeepCopy()
+		err = subResourceClient.Get(ctx, directory, updatedDirectory)
 		require.NoError(t, err)
 
-		assert.Equal(t, openldapv1alpha1.LDAPServerPhaseFailed, updatedServer.Status.Phase)
+		assert.Equal(t, openldapv1alpha1.LDAPDirectoryPhaseFailed, updatedDirectory.Status.Phase)
 	})
 }

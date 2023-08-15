@@ -42,10 +42,9 @@ type LDAPUserSpec struct {
 	PaswordSecretRef *reference.LocalSecretReference `json:"passwordSecretRef,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
 // LDAPUser is a LDAP user.
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type LDAPUser struct {
@@ -56,9 +55,8 @@ type LDAPUser struct {
 	Status api.SimpleStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
 // LDAPUserList contains a list of LDAPUser
+// +kubebuilder:object:root=true
 type LDAPUserList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -85,26 +83,26 @@ func (u *LDAPUser) GetDistinguishedName(ctx context.Context, reader client.Reade
 		return "uid=" + u.Spec.Username + "," + parentDN, nil
 	}
 
-	server, err := u.Spec.ServerRef.Resolve(ctx, reader, scheme, u)
+	directory, err := u.Spec.DirectoryRef.Resolve(ctx, reader, scheme, u)
 	if err != nil {
 		return "", err
 	}
 
-	serverObj, ok := server.(api.NamedLDAPObject)
+	directoryObj, ok := directory.(api.NamedLDAPObject)
 	if !ok {
-		return "", fmt.Errorf("server is not a named ldap object")
+		return "", fmt.Errorf("directory is not a named ldap object")
 	}
 
-	serverDN, err := serverObj.GetDistinguishedName(ctx, reader, scheme)
+	directoryDN, err := directoryObj.GetDistinguishedName(ctx, reader, scheme)
 	if err != nil {
 		return "", err
 	}
 
-	return "uid=" + u.Spec.Username + "," + serverDN, nil
+	return "uid=" + u.Spec.Username + "," + directoryDN, nil
 }
 
 func (u *LDAPUser) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) error {
-	if _, err := (&(&u.Spec).ServerRef).Resolve(ctx, reader, scheme, u); err != nil {
+	if _, err := (&(&u.Spec).DirectoryRef).Resolve(ctx, reader, scheme, u); err != nil {
 		return err
 	}
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package directory_test
+package ldap_test
 
 import (
 	"crypto/rand"
@@ -39,16 +39,16 @@ func generateCertificates(certsDir string) error {
 		return err
 	}
 
-	serverKeyPEM, serverCertPEM, err := generateServerCertificate(caKeyPEM, caCertPEM)
+	directoryKeyPEM, directoryCertPEM, err := generateDirectoryCertificate(caKeyPEM, caCertPEM)
 	if err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(certsDir, "tls.crt"), serverCertPEM, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(certsDir, "tls.crt"), directoryCertPEM, 0o644); err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(certsDir, "tls.key"), serverKeyPEM, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(certsDir, "tls.key"), directoryKeyPEM, 0o644); err != nil {
 		return err
 	}
 
@@ -85,7 +85,7 @@ func generateSelfSignedCA() (caKeyPEM, caCertPEM []byte, err error) {
 	return caKeyPEM, caCertPEM, nil
 }
 
-func generateServerCertificate(caKeyPEM, caCertPEM []byte) (certPEM, keyPEM []byte, err error) {
+func generateDirectoryCertificate(caKeyPEM, caCertPEM []byte) (certPEM, keyPEM []byte, err error) {
 	caKeyBlock, _ := pem.Decode(caKeyPEM)
 	caPrivKey, err := x509.ParsePKCS1PrivateKey(caKeyBlock.Bytes)
 	if err != nil {

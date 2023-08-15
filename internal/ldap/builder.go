@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package directory
+package ldap
 
 import (
 	"context"
@@ -33,14 +33,14 @@ import (
 type ClientBuilder interface {
 	WithReader(reader client.Reader) ClientBuilder
 	WithScheme(scheme *runtime.Scheme) ClientBuilder
-	WithServer(server *openldapv1alpha1.LDAPServer) ClientBuilder
+	WithDirectory(directory *openldapv1alpha1.LDAPDirectory) ClientBuilder
 	Build(ctx context.Context) (Client, error)
 }
 
 type clientBuilderImpl struct {
-	reader client.Reader
-	scheme *runtime.Scheme
-	server *openldapv1alpha1.LDAPServer
+	reader    client.Reader
+	scheme    *runtime.Scheme
+	directory *openldapv1alpha1.LDAPDirectory
 }
 
 func NewClientBuilder() ClientBuilder {
@@ -49,31 +49,31 @@ func NewClientBuilder() ClientBuilder {
 
 func (b *clientBuilderImpl) WithReader(reader client.Reader) ClientBuilder {
 	return &clientBuilderImpl{
-		reader: reader,
-		scheme: b.scheme,
-		server: b.server,
+		reader:    reader,
+		scheme:    b.scheme,
+		directory: b.directory,
 	}
 }
 
 func (b *clientBuilderImpl) WithScheme(scheme *runtime.Scheme) ClientBuilder {
 	return &clientBuilderImpl{
-		reader: b.reader,
-		scheme: scheme,
-		server: b.server,
+		reader:    b.reader,
+		scheme:    scheme,
+		directory: b.directory,
 	}
 }
 
-func (b *clientBuilderImpl) WithServer(server *openldapv1alpha1.LDAPServer) ClientBuilder {
+func (b *clientBuilderImpl) WithDirectory(directory *openldapv1alpha1.LDAPDirectory) ClientBuilder {
 	return &clientBuilderImpl{
-		reader: b.reader,
-		scheme: b.scheme,
-		server: server,
+		reader:    b.reader,
+		scheme:    b.scheme,
+		directory: directory,
 	}
 }
 
 func (b *clientBuilderImpl) Build(ctx context.Context) (Client, error) {
 	// Get the admin password.
-	adminPasswordSecret, err := b.server.Spec.AdminPasswordSecretRef.Resolve(ctx, b.reader, b.scheme, b.server)
+	adminPasswordSecret, err := b.directory.Spec.AdminPasswordSecretRef.Resolve(ctx, b.reader, b.scheme, b.directory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve admin password secret reference: %w", err)
 	}
@@ -81,7 +81,7 @@ func (b *clientBuilderImpl) Build(ctx context.Context) (Client, error) {
 	adminPassword := string(adminPasswordSecret.(*corev1.Secret).Data["password"])
 
 	// Get the CA certificate..
-	certificateSecret, err := b.server.Spec.CertificateSecretRef.Resolve(ctx, b.reader, b.scheme, b.server)
+	certificateSecret, err := b.directory.Spec.CertificateSecretRef.Resolve(ctx, b.reader, b.scheme, b.directory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve certificate secret reference: %w", err)
 	}
@@ -91,18 +91,18 @@ func (b *clientBuilderImpl) Build(ctx context.Context) (Client, error) {
 		return nil, fmt.Errorf("failed to construct ca bundle")
 	}
 
-	serverAddress := fmt.Sprintf("ldaps://%s.%s.svc.%s", b.server.Name, b.server.Namespace, k8sutils.GetClusterDomain())
-	if b.server.Spec.AddressOverride != "" {
-		serverAddress = b.server.Spec.AddressOverride
+	directoryAddress := fmt.Sprintf("ldaps://%s.%s.svc.%s", b.directory.Name, b.directory.Namespace, k8sutils.GetClusterDomain())
+	if b.directory.Spec.AddressOverride != "" {
+		directoryAddress = b.directory.Spec.AddressOverride
 	}
 
-	baseDN := "dc=" + strings.ReplaceAll(b.server.Spec.Domain, ".", ",dc=")
+	baseDN := "dc=" + strings.ReplaceAll(b.directory.Spec.Domain, ".", ",dc=")
 
 	return &clientImpl{
-		serverAddress: serverAddress,
-		caBundle:      caBundle,
-		adminUsername: "cn=admin," + baseDN,
-		adminPassword: adminPassword,
-		baseDN:        baseDN,
+		directoryAddress: directoryAddress,
+		caBundle:         caBundle,
+		adminUsername:    "cn=admin," + baseDN,
+		adminPassword:    adminPassword,
+		baseDN:           baseDN,
 	}, nil
 }

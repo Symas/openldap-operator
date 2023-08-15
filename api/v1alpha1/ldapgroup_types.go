@@ -38,10 +38,9 @@ type LDAPGroupSpec struct {
 	Members []string `json:"members"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
 // LDAPGroup is a LDAP group of names.
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type LDAPGroup struct {
@@ -52,9 +51,8 @@ type LDAPGroup struct {
 	Status api.SimpleStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
 // LDAPGroupList contains a list of LDAPGroup
+// +kubebuilder:object:root=true
 type LDAPGroupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -81,26 +79,26 @@ func (g *LDAPGroup) GetDistinguishedName(ctx context.Context, reader client.Read
 		return "cn=" + g.Spec.Name + "," + parentDN, nil
 	}
 
-	server, err := g.Spec.ServerRef.Resolve(ctx, reader, scheme, g)
+	directory, err := g.Spec.DirectoryRef.Resolve(ctx, reader, scheme, g)
 	if err != nil {
 		return "", err
 	}
 
-	serverObj, ok := server.(api.NamedLDAPObject)
+	directoryObj, ok := directory.(api.NamedLDAPObject)
 	if !ok {
-		return "", fmt.Errorf("server is not a named ldap object")
+		return "", fmt.Errorf("directory is not a named ldap object")
 	}
 
-	serverDN, err := serverObj.GetDistinguishedName(ctx, reader, scheme)
+	directoryDN, err := directoryObj.GetDistinguishedName(ctx, reader, scheme)
 	if err != nil {
 		return "", err
 	}
 
-	return "cn=" + g.Spec.Name + "," + serverDN, nil
+	return "cn=" + g.Spec.Name + "," + directoryDN, nil
 }
 
 func (g *LDAPGroup) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) error {
-	if _, err := g.Spec.ServerRef.Resolve(ctx, reader, scheme, g); err != nil {
+	if _, err := g.Spec.DirectoryRef.Resolve(ctx, reader, scheme, g); err != nil {
 		return err
 	}
 

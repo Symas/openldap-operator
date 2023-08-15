@@ -44,8 +44,8 @@ type LDAPObject interface {
 
 // +kubebuilder:object:generate=true
 type LDAPObjectSpec struct {
-	// ServerRef is a reference to the server that owns this object.
-	ServerRef LDAPServerReference `json:"serverRef"`
+	// DirectoryRef is a reference to the directory that owns this object.
+	DirectoryRef LDAPDirectoryReference `json:"directoryRef"`
 	// ParentRef is an optional reference to the parent of this object (typically an organizational unit).
 	ParentRef *reference.LocalObjectReference `json:"parentRef,omitempty"`
 }
@@ -72,17 +72,17 @@ type SimpleStatus struct {
 	Message string `json:"message,omitempty"`
 }
 
-// LDAPServerReference is a reference to an LDAPServer.
+// LDAPDirectoryReference is a reference to an LDAPDirectory.
 // +kubebuilder:object:generate=true
-type LDAPServerReference struct {
-	// Name of the referenced LDAPServer.
+type LDAPDirectoryReference struct {
+	// Name of the referenced LDAPDirectory.
 	Name string `json:"name"`
 }
 
-func (ref *LDAPServerReference) Resolve(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, parent runtime.Object) (runtime.Object, error) {
+func (ref *LDAPDirectoryReference) Resolve(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, parent runtime.Object) (runtime.Object, error) {
 	objRef := &reference.ObjectReference{
 		Name: ref.Name,
-		Kind: "LDAPServer",
+		Kind: "LDAPDirectory",
 	}
 
 	return objRef.Resolve(ctx, reader, scheme, parent)

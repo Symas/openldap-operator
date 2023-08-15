@@ -35,10 +35,9 @@ type LDAPOrganizationalUnitSpec struct {
 	Description string `json:"description,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
 // LDAPOrganizationalUnit is a LDAP organizational unit.
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type LDAPOrganizationalUnit struct {
@@ -49,9 +48,8 @@ type LDAPOrganizationalUnit struct {
 	Status api.SimpleStatus           `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
 // LDAPOrganizationalUnitList contains a list of LDAPOrganizationalUnit
+// +kubebuilder:object:root=true
 type LDAPOrganizationalUnitList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -78,26 +76,26 @@ func (ou *LDAPOrganizationalUnit) GetDistinguishedName(ctx context.Context, read
 		return "ou=" + ou.Spec.Name + "," + parentDN, nil
 	}
 
-	server, err := ou.Spec.ServerRef.Resolve(ctx, reader, scheme, ou)
+	directory, err := ou.Spec.DirectoryRef.Resolve(ctx, reader, scheme, ou)
 	if err != nil {
 		return "", err
 	}
 
-	serverObj, ok := server.(api.NamedLDAPObject)
+	directoryObj, ok := directory.(api.NamedLDAPObject)
 	if !ok {
-		return "", fmt.Errorf("server is not a named ldap object")
+		return "", fmt.Errorf("directory is not a named ldap object")
 	}
 
-	serverDN, err := serverObj.GetDistinguishedName(ctx, reader, scheme)
+	directoryDN, err := directoryObj.GetDistinguishedName(ctx, reader, scheme)
 	if err != nil {
 		return "", err
 	}
 
-	return "ou=" + ou.Spec.Name + "," + serverDN, nil
+	return "ou=" + ou.Spec.Name + "," + directoryDN, nil
 }
 
 func (ou *LDAPOrganizationalUnit) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) error {
-	if _, err := ou.Spec.ServerRef.Resolve(ctx, reader, scheme, ou); err != nil {
+	if _, err := ou.Spec.DirectoryRef.Resolve(ctx, reader, scheme, ou); err != nil {
 		return err
 	}
 

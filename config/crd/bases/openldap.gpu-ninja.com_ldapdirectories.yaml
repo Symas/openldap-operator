@@ -4,14 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.0
-  name: ldapservers.openldap.gpu-ninja.com
+  name: ldapdirectories.openldap.gpu-ninja.com
 spec:
   group: openldap.gpu-ninja.com
   names:
-    kind: LDAPServer
-    listKind: LDAPServerList
-    plural: ldapservers
-    singular: ldapserver
+    kind: LDAPDirectory
+    listKind: LDAPDirectoryList
+    plural: ldapdirectories
+    singular: ldapdirectory
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -24,7 +24,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: LDAPServer is an OpenLDAP server.
+        description: LDAPDirectory is a LDAP directory.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -39,11 +39,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: LDAPServerSpec defines the desired state of LDAPServer.
+            description: LDAPDirectorySpec defines the desired state of the LDAP directory.
             properties:
               addressOverride:
                 description: AddressOverride is an optional address that will be used
-                  to access the LDAP server
+                  to access the LDAP directory.
                 type: string
               adminPasswordSecretRef:
                 description: AdminPasswordSecretRef is a reference to a secret that
@@ -58,7 +58,7 @@ spec:
               certificateSecretRef:
                 description: CertificateSecretRef is a reference to a secret that
                   contains the TLS certificate and key that will be used to secure
-                  the LDAP server.
+                  the LDAP directory.
                 properties:
                   name:
                     description: Name is the name of the secret.
@@ -67,23 +67,23 @@ spec:
                 - name
                 type: object
               debugLevel:
-                description: DebugLevel controls the verbosity of the server logs.
+                description: DebugLevel controls the verbosity of the directory logs.
                 type: integer
               domain:
                 description: Domain is the domain of the organization that owns the
-                  LDAP server.
+                  LDAP directory.
                 type: string
               fileDescriptorLimit:
                 description: 'FileDescriptorLimit controls the maximum number of file
-                  descriptors that the LDAP server can open. See: https://github.com/docker/docker/issues/8231'
+                  descriptors that the LDAP directory can open. See: https://github.com/docker/docker/issues/8231'
                 type: integer
               image:
                 description: Image is the container image that will be used to run
-                  the LDAP server.
+                  the LDAP directory.
                 type: string
               organization:
                 description: Organization is the name of the organization that owns
-                  the LDAP server.
+                  the LDAP directory.
                 type: string
               storage:
                 description: Storage defines the persistent volume that will be used
@@ -109,11 +109,12 @@ spec:
             - storage
             type: object
           status:
-            description: LDAPServerStatus defines the observed state of the LDAPServer.
+            description: LDAPDirectoryStatus defines the observed state of the LDAP
+              directory.
             properties:
               conditions:
                 description: Conditions represents the latest available observations
-                  of the LDAP Server's current state.
+                  of the LDAP directories current state.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -183,11 +184,11 @@ spec:
                 type: array
               observedGeneration:
                 description: ObservedGeneration is the most recent generation observed
-                  for this LDAP server by the controller.
+                  for this LDAP directory by the controller.
                 format: int64
                 type: integer
               phase:
-                description: Phase is the current state of the LDAP server.
+                description: Phase is the current state of the LDAP directory.
                 type: string
             type: object
         type: object

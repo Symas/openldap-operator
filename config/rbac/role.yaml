@@ -50,6 +50,32 @@ rules:
 - apiGroups:
   - openldap.gpu-ninja.com
   resources:
+  - ldapdirectories
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapdirectories/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
+  - ldapdirectories/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - openldap.gpu-ninja.com
+  resources:
   - ldapgroups
   verbs:
   - create
@@ -95,32 +121,6 @@ rules:
   - openldap.gpu-ninja.com
   resources:
   - ldaporganizationalunits/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - openldap.gpu-ninja.com
-  resources:
-  - ldapservers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - openldap.gpu-ninja.com
-  resources:
-  - ldapservers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - openldap.gpu-ninja.com
-  resources:
-  - ldapservers/status
   verbs:
   - get
   - patch

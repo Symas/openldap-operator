@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/component: managed-resource
 spec:
-  serverRef:
+  directoryRef:
     name: demo
   parentRef:
     name: users

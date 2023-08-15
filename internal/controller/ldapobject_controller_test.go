@@ -27,7 +27,7 @@ import (
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/openldap-operator/internal/constants"
 	"github.com/gpu-ninja/openldap-operator/internal/controller"
-	"github.com/gpu-ninja/openldap-operator/internal/directory"
+	"github.com/gpu-ninja/openldap-operator/internal/ldap"
 	"github.com/gpu-ninja/openldap-operator/internal/mapper"
 	fakeutils "github.com/gpu-ninja/operator-utils/fake"
 	"github.com/gpu-ninja/operator-utils/reference"
@@ -73,8 +73,8 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 		Spec: openldapv1alpha1.LDAPUserSpec{
 			LDAPObjectSpec: api.LDAPObjectSpec{
-				ServerRef: api.LDAPServerReference{
-					Name: "test-server",
+				DirectoryRef: api.LDAPDirectoryReference{
+					Name: "test-directory",
 				},
 				ParentRef: &reference.LocalObjectReference{
 					Name: "test-ou",
@@ -105,8 +105,8 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 		Spec: openldapv1alpha1.LDAPOrganizationalUnitSpec{
 			LDAPObjectSpec: api.LDAPObjectSpec{
-				ServerRef: api.LDAPServerReference{
-					Name: "test-server",
+				DirectoryRef: api.LDAPDirectoryReference{
+					Name: "test-directory",
 				},
 			},
 			Name: "users",
@@ -116,12 +116,12 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 	}
 
-	server := &openldapv1alpha1.LDAPServer{
+	directory := &openldapv1alpha1.LDAPDirectory{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-server",
+			Name:      "test-directory",
 			Namespace: "default",
 		},
-		Spec: openldapv1alpha1.LDAPServerSpec{
+		Spec: openldapv1alpha1.LDAPDirectorySpec{
 			Domain: "example.com",
 			AdminPasswordSecretRef: reference.LocalSecretReference{
 				Name: "admin-password",
@@ -130,8 +130,8 @@ func TestLDAPObjectReconciler(t *testing.T) {
 				Name: "certificate",
 			},
 		},
-		Status: openldapv1alpha1.LDAPServerStatus{
-			Phase: openldapv1alpha1.LDAPServerPhaseReady,
+		Status: openldapv1alpha1.LDAPDirectoryStatus{
+			Phase: openldapv1alpha1.LDAPDirectoryPhaseReady,
 		},
 	}
 
@@ -143,7 +143,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 	}
 
-	r := &controller.LDAPObjectReconciler[*openldapv1alpha1.LDAPUser, *directory.User]{
+	r := &controller.LDAPObjectReconciler[*openldapv1alpha1.LDAPUser, *ldap.User]{
 		Scheme:     scheme,
 		MapToEntry: mapper.UserToEntry,
 	}
@@ -158,13 +158,13 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(user, userPassword, orgUnit, server).
-			WithStatusSubresource(user, orgUnit, server).
+			WithObjects(user, userPassword, orgUnit, directory).
+			WithStatusSubresource(user, orgUnit, directory).
 			WithInterceptorFuncs(interceptorFuncs).
 			Build()
 
 		var m mock.Mock
-		r.DirectoryClientBuilder = directory.NewFakeClientBuilder(&m)
+		r.LDAPClientBuilder = ldap.NewFakeClientBuilder(&m)
 
 		m.On("CreateOrUpdateEntry", mock.Anything).Return(true, nil)
 
@@ -200,13 +200,13 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(deletingUser, userPassword, orgUnit, server).
-			WithStatusSubresource(deletingUser, orgUnit, server).
+			WithObjects(deletingUser, userPassword, orgUnit, directory).
+			WithStatusSubresource(deletingUser, orgUnit, directory).
 			WithInterceptorFuncs(interceptorFuncs).
 			Build()
 
 		var m mock.Mock
-		r.DirectoryClientBuilder = directory.NewFakeClientBuilder(&m)
+		r.LDAPClientBuilder = ldap.NewFakeClientBuilder(&m)
 
 		m.On("DeleteEntry", mock.Anything, mock.Anything).Return(nil)
 
@@ -232,8 +232,8 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(user, orgUnit, server). // Note the missing secrets.
-			WithStatusSubresource(user, orgUnit, server).
+			WithObjects(user, orgUnit, directory). // Note the missing secrets.
+			WithStatusSubresource(user, orgUnit, directory).
 			WithInterceptorFuncs(interceptorFuncs).
 			Build()
 
@@ -257,19 +257,19 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		assert.Equal(t, api.PhasePending, updatedUser.Status.Phase)
 	})
 
-	t.Run("Server Not Ready", func(t *testing.T) {
+	t.Run("Directory Not Ready", func(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
 		r.EventRecorder = eventRecorder
 
 		subResourceClient.Reset()
 
-		notReadyServer := server.DeepCopy()
-		notReadyServer.Status.Phase = openldapv1alpha1.LDAPServerPhasePending
+		notReadyDirectory := directory.DeepCopy()
+		notReadyDirectory.Status.Phase = openldapv1alpha1.LDAPDirectoryPhasePending
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(user, userPassword, orgUnit, notReadyServer).
-			WithStatusSubresource(user, orgUnit, notReadyServer).
+			WithObjects(user, userPassword, orgUnit, notReadyDirectory).
+			WithStatusSubresource(user, orgUnit, notReadyDirectory).
 			WithInterceptorFuncs(interceptorFuncs).
 			Build()
 
@@ -284,7 +284,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 		require.Len(t, eventRecorder.Events, 1)
 		event := <-eventRecorder.Events
-		assert.Equal(t, "Warning NotReady Referenced server is not ready", event)
+		assert.Equal(t, "Warning NotReady Referenced directory is not ready", event)
 
 		updatedUser := user.DeepCopy()
 		err = subResourceClient.Get(ctx, user, updatedUser)
@@ -304,8 +304,8 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(user, userPassword, notReadyOrgUnit, server).
-			WithStatusSubresource(user, notReadyOrgUnit, server).
+			WithObjects(user, userPassword, notReadyOrgUnit, directory).
+			WithStatusSubresource(user, notReadyOrgUnit, directory).
 			WithInterceptorFuncs(interceptorFuncs).
 			Build()
 
@@ -337,13 +337,13 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(user, userPassword, orgUnit, server).
-			WithStatusSubresource(user, orgUnit, server).
+			WithObjects(user, userPassword, orgUnit, directory).
+			WithStatusSubresource(user, orgUnit, directory).
 			WithInterceptorFuncs(interceptorFuncs).
 			Build()
 
 		var m mock.Mock
-		r.DirectoryClientBuilder = directory.NewFakeClientBuilder(&m)
+		r.LDAPClientBuilder = ldap.NewFakeClientBuilder(&m)
 
 		m.On("CreateOrUpdateEntry", mock.Anything).Return(false, fmt.Errorf("bang"))
 
@@ -358,7 +358,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 		require.Len(t, eventRecorder.Events, 1)
 		event := <-eventRecorder.Events
-		assert.Equal(t, "Warning Failed Failed to create or update ldap object: bang", event)
+		assert.Equal(t, "Warning Failed Failed to create or update ldap entry: bang", event)
 
 		updateduser := user.DeepCopy()
 		err = subResourceClient.Get(ctx, user, updateduser)

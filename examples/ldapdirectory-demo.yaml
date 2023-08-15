@@ -1,5 +1,5 @@
 apiVersion: openldap.gpu-ninja.com/v1alpha1
-kind: LDAPServer
+kind: LDAPDirectory
 metadata:
   name: demo
   labels:

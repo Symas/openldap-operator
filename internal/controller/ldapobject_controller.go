@@ -25,7 +25,7 @@ import (
 	"github.com/gpu-ninja/openldap-operator/api"
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/openldap-operator/internal/constants"
-	"github.com/gpu-ninja/openldap-operator/internal/directory"
+	"github.com/gpu-ninja/openldap-operator/internal/ldap"
 	"github.com/gpu-ninja/openldap-operator/internal/mapper"
 	"github.com/gpu-ninja/operator-utils/retryable"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
@@ -55,18 +55,18 @@ import (
 //+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapusers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapusers/finalizers,verbs=update
 
-type LDAPObjectReconciler[T api.LDAPObject, E directory.Entry] struct {
+type LDAPObjectReconciler[T api.LDAPObject, E ldap.Entry] struct {
 	client.Client
-	Scheme                 *runtime.Scheme
-	EventRecorder          record.EventRecorder
-	DirectoryClientBuilder directory.ClientBuilder
-	MapToEntry             mapper.Mapper[T, E]
+	Scheme            *runtime.Scheme
+	EventRecorder     record.EventRecorder
+	LDAPClientBuilder ldap.ClientBuilder
+	MapToEntry        mapper.Mapper[T, E]
 }
 
 func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := zaplogr.FromContext(ctx)
 
-	logger.Info("Reconciling LDAP object")
+	logger.Info("Reconciling")
 
 	obj := r.newInstance()
 	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
@@ -133,27 +133,27 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	objSpec := obj.GetLDAPObjectSpec()
-	serverObj, err := objSpec.ServerRef.Resolve(ctx, r.Client, r.Scheme, obj)
+	directoryObj, err := objSpec.DirectoryRef.Resolve(ctx, r.Client, r.Scheme, obj)
 	if err != nil {
-		logger.Error("Failed to resolve server reference", zap.Error(err))
+		logger.Error("Failed to resolve directory reference", zap.Error(err))
 
 		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
-			"Failed", "Failed to resolve server reference: %s", err)
+			"Failed", "Failed to resolve directory reference: %s", err)
 
 		r.markFailed(ctx, obj,
-			fmt.Errorf("failed to resolve server reference: %w", err))
+			fmt.Errorf("failed to resolve directory reference: %w", err))
 
 		return ctrl.Result{}, nil
 	}
-	server := serverObj.(*openldapv1alpha1.LDAPServer)
+	directory := directoryObj.(*openldapv1alpha1.LDAPDirectory)
 
-	// Is the server ready?
-	if server.Status.Phase != openldapv1alpha1.LDAPServerPhaseReady {
-		logger.Info("Referenced LDAP Server not ready",
-			zap.String("namespace", server.Namespace), zap.String("name", server.Name))
+	if directory.Status.Phase != openldapv1alpha1.LDAPDirectoryPhaseReady {
+		logger.Info("Referenced directory not ready",
+			zap.String("namespace", directory.Namespace),
+			zap.String("name", directory.Name))
 
 		r.EventRecorder.Event(obj, corev1.EventTypeWarning,
-			"NotReady", "Referenced server is not ready")
+			"NotReady", "Referenced directory is not ready")
 
 		if err := r.markPending(ctx, obj); err != nil {
 			return ctrl.Result{}, err
@@ -193,9 +193,8 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 			return ctrl.Result{}, err
 		}
 
-		// Is the parent ready?
 		if parentObj.GetPhase() != api.PhaseReady {
-			logger.Info("Referenced parent LDAP object not ready",
+			logger.Info("Referenced parent object is not ready",
 				zap.String("namespace", parentObj.GetNamespace()), zap.String("name", parentObj.GetName()))
 
 			r.EventRecorder.Event(obj, corev1.EventTypeWarning,
@@ -209,7 +208,7 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	directoryClient, err := r.DirectoryClientBuilder.WithServer(server).Build(ctx)
+	ldapClient, err := r.LDAPClientBuilder.WithDirectory(directory).Build(ctx)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create directory client: %w", err)
 	}
@@ -222,11 +221,11 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 	logger = logger.With(zap.String("dn", dn))
 
 	if !obj.GetDeletionTimestamp().IsZero() {
-		logger.Info("Deleting LDAP object")
+		logger.Info("Deleting")
 
-		if err := directoryClient.DeleteEntry(dn, true); err != nil {
+		if err := ldapClient.DeleteEntry(dn, true); err != nil {
 			// Don't block deletion.
-			logger.Error("Failed to delete LDAP object, skipping deletion", zap.Error(err))
+			logger.Error("Failed to delete LDAP entry, skipping deletion", zap.Error(err))
 		}
 
 		_, err := controllerutil.CreateOrPatch(ctx, r.Client, obj, func() error {
@@ -242,15 +241,15 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if obj.GetPhase() == api.PhaseFailed {
-		logger.Info("LDAP Object is in failed state, ignoring")
+		logger.Info("Object is in failed state, ignoring")
 
 		return ctrl.Result{}, nil
 	}
 
-	logger.Info("Creating or updating LDAP object")
+	logger.Info("Creating or updating")
 
 	// Set owner reference to parent (if one is specified).
-	var owner runtime.Object = server
+	var owner runtime.Object = directory
 	if objSpec.ParentRef != nil {
 		owner = parent
 	}
@@ -280,28 +279,26 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	}
 
-	created, err := directoryClient.CreateOrUpdateEntry(entry)
+	created, err := ldapClient.CreateOrUpdateEntry(entry)
 	if err != nil {
-		logger.Error("Failed to create or update LDAP object", zap.Error(err))
+		logger.Error("Failed to create or update LDAP entry", zap.Error(err))
 
 		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
-			"Failed", "Failed to create or update ldap object: %s", err)
+			"Failed", "Failed to create or update ldap entry: %s", err)
 
 		r.markFailed(ctx, obj,
-			fmt.Errorf("failed to create or update ldap object: %w", err))
+			fmt.Errorf("failed to create or update ldap entry: %w", err))
 
 		return ctrl.Result{}, nil
 	}
 
 	if created {
-		logger.Info("LDAP object created")
-
 		r.EventRecorder.Event(obj, corev1.EventTypeNormal,
 			"Created", "Successfully created")
-	}
 
-	if err := r.markReady(ctx, obj); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to mark as ready: %w", err)
+		if err := r.markReady(ctx, obj); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil

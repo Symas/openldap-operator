@@ -27,24 +27,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type LDAPServerPhase string
+type LDAPDirectoryPhase string
 
 const (
-	LDAPServerPhasePending LDAPServerPhase = "Pending"
-	LDAPServerPhaseReady   LDAPServerPhase = "Ready"
-	LDAPServerPhaseFailed  LDAPServerPhase = "Failed"
+	LDAPDirectoryPhasePending LDAPDirectoryPhase = "Pending"
+	LDAPDirectoryPhaseReady   LDAPDirectoryPhase = "Ready"
+	LDAPDirectoryPhaseFailed  LDAPDirectoryPhase = "Failed"
 )
 
-type LDAPServerConditionType string
+type LDAPDirectoryConditionType string
 
 const (
-	LDAPServerConditionTypePending LDAPServerConditionType = "Pending"
-	LDAPServerConditionTypeReady   LDAPServerConditionType = "Ready"
-	LDAPServerConditionTypeFailed  LDAPServerConditionType = "Failed"
+	LDAPDirectoryConditionTypePending LDAPDirectoryConditionType = "Pending"
+	LDAPDirectoryConditionTypeReady   LDAPDirectoryConditionType = "Ready"
+	LDAPDirectoryConditionTypeFailed  LDAPDirectoryConditionType = "Failed"
 )
 
-// LDAPServerStorageSpec defines the storage configuration for the LDAP server.
-type LDAPServerStorageSpec struct {
+// LDAPDirectoryStorageSpec defines the storage configuration for the LDAP directory.
+type LDAPDirectoryStorageSpec struct {
 	// Size is the size of the persistent volume that will be
 	// used to store the LDAP database.
 	Size string `json:"size"`
@@ -53,70 +53,71 @@ type LDAPServerStorageSpec struct {
 	StorageClassName *string `json:"storageClassName,omitempty"`
 }
 
-// LDAPServerSpec defines the desired state of LDAPServer.
-type LDAPServerSpec struct {
-	// Image is the container image that will be used to run the LDAP server.
+// LDAPDirectorySpec defines the desired state of the LDAP directory.
+type LDAPDirectorySpec struct {
+	// Image is the container image that will be used to run the LDAP directory.
 	Image string `json:"image"`
-	// Domain is the domain of the organization that owns the LDAP server.
+	// Domain is the domain of the organization that owns the LDAP directory.
 	Domain string `json:"domain"`
-	// Organization is the name of the organization that owns the LDAP server.
+	// Organization is the name of the organization that owns the LDAP directory.
 	Organization string `json:"organization"`
 	// AdminPasswordSecretRef is a reference to a secret that contains the
 	// password for the admin user.
 	AdminPasswordSecretRef reference.LocalSecretReference `json:"adminPasswordSecretRef"`
 	// CertificateSecretRef is a reference to a secret that contains the
-	// TLS certificate and key that will be used to secure the LDAP server.
+	// TLS certificate and key that will be used to secure the LDAP directory.
 	CertificateSecretRef reference.LocalSecretReference `json:"certificateSecretRef"`
-	// DebugLevel controls the verbosity of the server logs.
+	// DebugLevel controls the verbosity of the directory logs.
 	DebugLevel *int `json:"debugLevel,omitempty"`
 	// FileDescriptorLimit controls the maximum number of file
-	// descriptors that the LDAP server can open.
+	// descriptors that the LDAP directory can open.
 	// See: https://github.com/docker/docker/issues/8231
 	FileDescriptorLimit *int `json:"fileDescriptorLimit,omitempty"`
 	// Storage defines the persistent volume that will be used
 	// to store the LDAP database.
-	Storage LDAPServerStorageSpec `json:"storage"`
+	Storage LDAPDirectoryStorageSpec `json:"storage"`
 	// AddressOverride is an optional address that will be used to
-	// access the LDAP server
+	// access the LDAP directory.
 	AddressOverride string `json:"addressOverride,omitempty"`
 }
 
-// LDAPServerStatus defines the observed state of the LDAPServer.
-type LDAPServerStatus struct {
-	// Phase is the current state of the LDAP server.
-	Phase LDAPServerPhase `json:"phase,omitempty"`
-	// ObservedGeneration is the most recent generation observed for this LDAP server by the controller.
+// LDAPDirectoryStatus defines the observed state of the LDAP directory.
+type LDAPDirectoryStatus struct {
+	// Phase is the current state of the LDAP directory.
+	Phase LDAPDirectoryPhase `json:"phase,omitempty"`
+	// ObservedGeneration is the most recent generation observed for this LDAP directory by the controller.
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-	// Conditions represents the latest available observations of the LDAP Server's current state.
+	// Conditions represents the latest available observations of the LDAP directories current state.
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// LDAPServer is an OpenLDAP server.
+// LDAPDirectory is a LDAP directory.
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=ldapdirectories,scope=Namespaced
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-type LDAPServer struct {
+type LDAPDirectory struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   LDAPServerSpec   `json:"spec,omitempty"`
-	Status LDAPServerStatus `json:"status,omitempty"`
+	Spec   LDAPDirectorySpec   `json:"spec,omitempty"`
+	Status LDAPDirectoryStatus `json:"status,omitempty"`
 }
 
-// LDAPServerList contains a list of LDAPServer
+// LDAPDirectoryList contains a list of LDAPDirectory.
 // +kubebuilder:object:root=true
-type LDAPServerList struct {
+type LDAPDirectoryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []LDAPServer `json:"items"`
+	Items           []LDAPDirectory `json:"items"`
 }
 
-func (s *LDAPServer) GetDistinguishedName(_ context.Context, _ client.Reader, _ *runtime.Scheme) (string, error) {
+func (s *LDAPDirectory) GetDistinguishedName(_ context.Context, _ client.Reader, _ *runtime.Scheme) (string, error) {
 	return "dc=" + strings.Join(strings.Split(s.Spec.Domain, "."), ",dc="), nil
 }
 
-func (s *LDAPServer) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) error {
+func (s *LDAPDirectory) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) error {
 	_, err := s.Spec.AdminPasswordSecretRef.Resolve(ctx, reader, scheme, s)
 	if err != nil {
 		return err
@@ -131,5 +132,5 @@ func (s *LDAPServer) ResolveReferences(ctx context.Context, reader client.Reader
 }
 
 func init() {
-	SchemeBuilder.Register(&LDAPServer{}, &LDAPServerList{})
+	SchemeBuilder.Register(&LDAPDirectory{}, &LDAPDirectoryList{})
 }

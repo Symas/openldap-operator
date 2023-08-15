@@ -37,7 +37,7 @@ import (
 
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/openldap-operator/internal/controller"
-	"github.com/gpu-ninja/openldap-operator/internal/directory"
+	"github.com/gpu-ninja/openldap-operator/internal/ldap"
 	"github.com/gpu-ninja/openldap-operator/internal/mapper"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
 	//+kubebuilder:scaffold:imports
@@ -107,50 +107,50 @@ func main() {
 		os.Exit(1)
 	}
 
-	directoryClientBuilder := directory.NewClientBuilder().
+	ldapClientBuilder := ldap.NewClientBuilder().
 		WithReader(mgr.GetAPIReader()).
 		WithScheme(mgr.GetScheme())
 
-	if err = (&controller.LDAPServerReconciler{
+	if err = (&controller.LDAPDirectoryReconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
-		EventRecorder: mgr.GetEventRecorderFor("ldapserver-controller"),
+		EventRecorder: mgr.GetEventRecorderFor("ldapdirectory-controller"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "LDAPServer")
+		setupLog.Error(err, "unable to create controller", "controller", "LDAPDirectory")
 		os.Exit(1)
 	}
 
 	if err = (&controller.LDAPObjectReconciler[
-		*openldapv1alpha1.LDAPGroup, *directory.Group]{
-		Client:                 mgr.GetClient(),
-		Scheme:                 mgr.GetScheme(),
-		EventRecorder:          mgr.GetEventRecorderFor("ldapgroup-controller"),
-		DirectoryClientBuilder: directoryClientBuilder,
-		MapToEntry:             mapper.GroupToEntry,
+		*openldapv1alpha1.LDAPGroup, *ldap.Group]{
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		EventRecorder:     mgr.GetEventRecorderFor("ldapgroup-controller"),
+		LDAPClientBuilder: ldapClientBuilder,
+		MapToEntry:        mapper.GroupToEntry,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LDAPGroup")
 		os.Exit(1)
 	}
 
 	if err = (&controller.LDAPObjectReconciler[
-		*openldapv1alpha1.LDAPOrganizationalUnit, *directory.OrganizationalUnit]{
-		Client:                 mgr.GetClient(),
-		Scheme:                 mgr.GetScheme(),
-		EventRecorder:          mgr.GetEventRecorderFor("ldaporganizationalunit-controller"),
-		DirectoryClientBuilder: directoryClientBuilder,
-		MapToEntry:             mapper.OrganizationalUnitToEntry,
+		*openldapv1alpha1.LDAPOrganizationalUnit, *ldap.OrganizationalUnit]{
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		EventRecorder:     mgr.GetEventRecorderFor("ldaporganizationalunit-controller"),
+		LDAPClientBuilder: ldapClientBuilder,
+		MapToEntry:        mapper.OrganizationalUnitToEntry,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LDAPOrganizationalUnit")
 		os.Exit(1)
 	}
 
 	if err = (&controller.LDAPObjectReconciler[
-		*openldapv1alpha1.LDAPUser, *directory.User]{
-		Client:                 mgr.GetClient(),
-		Scheme:                 mgr.GetScheme(),
-		EventRecorder:          mgr.GetEventRecorderFor("ldapuser-controller"),
-		DirectoryClientBuilder: directoryClientBuilder,
-		MapToEntry:             mapper.UserToEntry,
+		*openldapv1alpha1.LDAPUser, *ldap.User]{
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		EventRecorder:     mgr.GetEventRecorderFor("ldapuser-controller"),
+		LDAPClientBuilder: ldapClientBuilder,
+		MapToEntry:        mapper.UserToEntry,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LDAPUser")
 		os.Exit(1)

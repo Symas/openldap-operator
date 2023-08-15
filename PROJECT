@@ -14,7 +14,7 @@ resources:
   controller: true
   domain: gpu-ninja.com
   group: openldap
-  kind: LDAPServer
+  kind: LDAPDirectory
   path: github.com/gpu-ninja/openldap-operator/api/v1alpha1
   version: v1alpha1
 - api:

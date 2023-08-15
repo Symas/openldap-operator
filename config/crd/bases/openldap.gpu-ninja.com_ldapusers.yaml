@@ -40,6 +40,16 @@ spec:
             type: object
           spec:
             properties:
+              directoryRef:
+                description: DirectoryRef is a reference to the directory that owns
+                  this object.
+                properties:
+                  name:
+                    description: Name of the referenced LDAPDirectory.
+                    type: string
+                required:
+                - name
+                type: object
               email:
                 description: Email is an optional email address of this user.
                 type: string
@@ -70,16 +80,6 @@ spec:
                 required:
                 - name
                 type: object
-              serverRef:
-                description: ServerRef is a reference to the server that owns this
-                  object.
-                properties:
-                  name:
-                    description: Name of the referenced LDAPServer.
-                    type: string
-                required:
-                - name
-                type: object
               surname:
                 description: Surname is the surname of this user.
                 type: string
@@ -87,8 +87,8 @@ spec:
                 description: Username is the username (uid) for this user.
                 type: string
             required:
+            - directoryRef
             - name
-            - serverRef
             - surname
             - username
             type: object
