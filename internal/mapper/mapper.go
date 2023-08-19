@@ -19,6 +19,7 @@ package mapper
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gpu-ninja/openldap-operator/api"
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
@@ -50,8 +51,10 @@ func GroupToEntry(_ context.Context, _ client.Reader, _ *runtime.Scheme, dn stri
 func UserToEntry(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, dn string, obj *openldapv1alpha1.LDAPUser) (*ldap.User, error) {
 	var password string
 	if obj.Spec.PaswordSecretRef != nil {
-		passwordSecret, err := obj.Spec.PaswordSecretRef.Resolve(ctx, reader, scheme, obj)
-		if err != nil {
+		passwordSecret, ok, err := obj.Spec.PaswordSecretRef.Resolve(ctx, reader, scheme, obj)
+		if !ok && err == nil {
+			return nil, fmt.Errorf("referenced password secret not found")
+		} else if err != nil {
 			return nil, err
 		}
 

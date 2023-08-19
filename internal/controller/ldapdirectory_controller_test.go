@@ -24,7 +24,6 @@ import (
 	"time"
 
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/constants"
 	"github.com/gpu-ninja/openldap-operator/internal/controller"
 	fakeutils "github.com/gpu-ninja/operator-utils/fake"
 	"github.com/gpu-ninja/operator-utils/reference"
@@ -119,7 +118,7 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 
 	t.Run("Create or Update", func(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		subResourceClient.Reset()
 
@@ -197,10 +196,10 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 	t.Run("Delete", func(t *testing.T) {
 		deletingDirectory := directory.DeepCopy()
 		deletingDirectory.DeletionTimestamp = &metav1.Time{Time: metav1.Now().Add(-1 * time.Second)}
-		deletingDirectory.Finalizers = []string{constants.FinalizerName}
+		deletingDirectory.Finalizers = []string{controller.FinalizerName}
 
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).
@@ -222,7 +221,7 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 
 	t.Run("References Not Resolvable", func(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		subResourceClient.Reset()
 
@@ -256,7 +255,7 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 
 	t.Run("Failure", func(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		failOnStatefulSets := interceptorFuncs
 		failOnStatefulSets.Get = func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
@@ -276,18 +275,17 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 			WithInterceptorFuncs(failOnStatefulSets).
 			Build()
 
-		resp, err := r.Reconcile(ctx, reconcile.Request{
+		_, err := r.Reconcile(ctx, reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Name:      directory.Name,
 				Namespace: directory.Namespace,
 			},
 		})
-		require.NoError(t, err)
-		assert.Zero(t, resp)
+		require.Error(t, err)
 
 		require.Len(t, eventRecorder.Events, 1)
 		event := <-eventRecorder.Events
-		assert.Equal(t, "Warning Failed Failed to reconcile statefulset: bang", event)
+		assert.Equal(t, "Warning Failed Failed to reconcile statefulset: failed to get object: bang", event)
 
 		updatedDirectory := directory.DeepCopy()
 		err = subResourceClient.Get(ctx, directory, updatedDirectory)

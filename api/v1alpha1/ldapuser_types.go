@@ -65,8 +65,10 @@ type LDAPUserList struct {
 
 func (u *LDAPUser) GetDistinguishedName(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) (string, error) {
 	if u.Spec.ParentRef != nil {
-		parent, err := u.Spec.ParentRef.Resolve(ctx, reader, scheme, u)
-		if err != nil {
+		parent, ok, err := u.Spec.ParentRef.Resolve(ctx, reader, scheme, u)
+		if !ok && err == nil {
+			return "", fmt.Errorf("referenced parent not found")
+		} else if err != nil {
 			return "", err
 		}
 
@@ -83,8 +85,10 @@ func (u *LDAPUser) GetDistinguishedName(ctx context.Context, reader client.Reade
 		return "uid=" + u.Spec.Username + "," + parentDN, nil
 	}
 
-	directory, err := u.Spec.DirectoryRef.Resolve(ctx, reader, scheme, u)
-	if err != nil {
+	directory, ok, err := u.Spec.DirectoryRef.Resolve(ctx, reader, scheme, u)
+	if !ok && err == nil {
+		return "", fmt.Errorf("referenced directory not found")
+	} else if err != nil {
 		return "", err
 	}
 
@@ -101,24 +105,27 @@ func (u *LDAPUser) GetDistinguishedName(ctx context.Context, reader client.Reade
 	return "uid=" + u.Spec.Username + "," + directoryDN, nil
 }
 
-func (u *LDAPUser) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) error {
-	if _, err := (&(&u.Spec).DirectoryRef).Resolve(ctx, reader, scheme, u); err != nil {
-		return err
+func (u *LDAPUser) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) (bool, error) {
+	_, ok, err := u.Spec.DirectoryRef.Resolve(ctx, reader, scheme, u)
+	if !ok || err != nil {
+		return ok, err
 	}
 
 	if u.Spec.ParentRef != nil {
-		if _, err := (&u.Spec).ParentRef.Resolve(ctx, reader, scheme, u); err != nil {
-			return err
+		_, ok, err = u.Spec.ParentRef.Resolve(ctx, reader, scheme, u)
+		if !ok || err != nil {
+			return ok, err
 		}
 	}
 
 	if u.Spec.PaswordSecretRef != nil {
-		if _, err := (&u.Spec).PaswordSecretRef.Resolve(ctx, reader, scheme, u); err != nil {
-			return err
+		_, ok, err = u.Spec.PaswordSecretRef.Resolve(ctx, reader, scheme, u)
+		if !ok || err != nil {
+			return ok, err
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 func (u *LDAPUser) GetLDAPObjectSpec() *api.LDAPObjectSpec {

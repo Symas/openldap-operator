@@ -24,10 +24,9 @@ import (
 
 	"github.com/gpu-ninja/openldap-operator/api"
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/constants"
 	"github.com/gpu-ninja/openldap-operator/internal/ldap"
 	"github.com/gpu-ninja/openldap-operator/internal/mapper"
-	"github.com/gpu-ninja/operator-utils/retryable"
+	"github.com/gpu-ninja/operator-utils/updater"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -58,7 +57,7 @@ import (
 type LDAPObjectReconciler[T api.LDAPObject, E ldap.Entry] struct {
 	client.Client
 	Scheme            *runtime.Scheme
-	EventRecorder     record.EventRecorder
+	Recorder          record.EventRecorder
 	LDAPClientBuilder ldap.ClientBuilder
 	MapToEntry        mapper.Mapper[T, E]
 }
@@ -77,11 +76,11 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if !controllerutil.ContainsFinalizer(obj, constants.FinalizerName) {
+	if !controllerutil.ContainsFinalizer(obj, FinalizerName) {
 		logger.Info("Adding Finalizer")
 
 		_, err := controllerutil.CreateOrPatch(ctx, r.Client, obj, func() error {
-			controllerutil.AddFinalizer(obj, constants.FinalizerName)
+			controllerutil.AddFinalizer(obj, FinalizerName)
 
 			return nil
 		})
@@ -90,54 +89,50 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	// Make sure all references are resolvable.
-	if err := obj.ResolveReferences(ctx, r.Client, r.Scheme); err != nil {
-		if retryable.IsRetryable(err) {
-			if !obj.GetDeletionTimestamp().IsZero() {
-				// Parent has probably been removed by a cascading delete.
-				// So there is probably no point in retrying.
+	ok, err := obj.ResolveReferences(ctx, r.Client, r.Scheme)
+	if !ok && err == nil {
+		if !obj.GetDeletionTimestamp().IsZero() {
+			// Parent has probably been removed by a cascading delete.
+			// So there is probably no point in retrying.
 
-				_, err := controllerutil.CreateOrPatch(ctx, r.Client, obj, func() error {
-					controllerutil.RemoveFinalizer(obj, constants.FinalizerName)
+			_, err := controllerutil.CreateOrPatch(ctx, r.Client, obj, func() error {
+				controllerutil.RemoveFinalizer(obj, FinalizerName)
 
-					return nil
-				})
-				if err != nil {
-					return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)
-				}
-
-				return ctrl.Result{}, nil
+				return nil
+			})
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)
 			}
 
-			logger.Info("Not all references are resolvable, requeuing")
-
-			r.EventRecorder.Event(obj, corev1.EventTypeWarning,
-				"NotReady", "Not all references are resolvable")
-
-			if err := r.markPending(ctx, obj); err != nil {
-				return ctrl.Result{}, err
-			}
-
-			return ctrl.Result{RequeueAfter: constants.ReconcileRetryInterval}, nil
+			return ctrl.Result{}, nil
 		}
 
-		logger.Error("Failed to resolve references", zap.Error(err))
+		logger.Info("Not all references are resolvable, requeuing")
 
-		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
+		r.Recorder.Event(obj, corev1.EventTypeWarning,
+			"NotReady", "Not all references are resolvable")
+
+		if err := r.markPending(ctx, obj); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{RequeueAfter: reconcileRetryInterval}, nil
+	} else if err != nil {
+		r.Recorder.Eventf(obj, corev1.EventTypeWarning,
 			"Failed", "Failed to resolve references: %s", err)
 
 		r.markFailed(ctx, obj,
 			fmt.Errorf("failed to resolve references: %w", err))
 
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, fmt.Errorf("failed to resolve references: %w", err)
 	}
 
 	objSpec := obj.GetLDAPObjectSpec()
-	directoryObj, err := objSpec.DirectoryRef.Resolve(ctx, r.Client, r.Scheme, obj)
+	directoryObj, _, err := objSpec.DirectoryRef.Resolve(ctx, r.Client, r.Scheme, obj)
 	if err != nil {
 		logger.Error("Failed to resolve directory reference", zap.Error(err))
 
-		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
+		r.Recorder.Eventf(obj, corev1.EventTypeWarning,
 			"Failed", "Failed to resolve directory reference: %s", err)
 
 		r.markFailed(ctx, obj,
@@ -152,24 +147,24 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 			zap.String("namespace", directory.Namespace),
 			zap.String("name", directory.Name))
 
-		r.EventRecorder.Event(obj, corev1.EventTypeWarning,
+		r.Recorder.Event(obj, corev1.EventTypeWarning,
 			"NotReady", "Referenced directory is not ready")
 
 		if err := r.markPending(ctx, obj); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		return ctrl.Result{RequeueAfter: constants.ReconcileRetryInterval}, nil
+		return ctrl.Result{RequeueAfter: reconcileRetryInterval}, nil
 	}
 
 	var parent runtime.Object
 	if objSpec.ParentRef != nil {
-		parent, err = objSpec.ParentRef.Resolve(ctx, r.Client, r.Scheme, obj)
+		parent, _, err = objSpec.ParentRef.Resolve(ctx, r.Client, r.Scheme, obj)
 		if err != nil {
 			// Should never happen as we've invoked ResolveReferences above.
 			logger.Error("Failed to resolve parent reference", zap.Error(err))
 
-			r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
+			r.Recorder.Eventf(obj, corev1.EventTypeWarning,
 				"Failed", "Failed to resolve parent reference: %s", err)
 
 			r.markFailed(ctx, obj,
@@ -184,7 +179,7 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		if !ok {
 			logger.Error("Parent is not an LDAP Object")
 
-			r.EventRecorder.Event(obj, corev1.EventTypeWarning,
+			r.Recorder.Event(obj, corev1.EventTypeWarning,
 				"Failed", "Parent is not an ldap object")
 
 			err := fmt.Errorf("parent is not an ldap object")
@@ -197,14 +192,14 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 			logger.Info("Referenced parent object is not ready",
 				zap.String("namespace", parentObj.GetNamespace()), zap.String("name", parentObj.GetName()))
 
-			r.EventRecorder.Event(obj, corev1.EventTypeWarning,
+			r.Recorder.Event(obj, corev1.EventTypeWarning,
 				"NotReady", "Referenced parent object is not ready")
 
 			if err := r.markPending(ctx, obj); err != nil {
 				return ctrl.Result{}, err
 			}
 
-			return ctrl.Result{RequeueAfter: constants.ReconcileRetryInterval}, nil
+			return ctrl.Result{RequeueAfter: reconcileRetryInterval}, nil
 		}
 	}
 
@@ -229,19 +224,13 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		_, err := controllerutil.CreateOrPatch(ctx, r.Client, obj, func() error {
-			controllerutil.RemoveFinalizer(obj, constants.FinalizerName)
+			controllerutil.RemoveFinalizer(obj, FinalizerName)
 
 			return nil
 		})
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)
 		}
-
-		return ctrl.Result{}, nil
-	}
-
-	if obj.GetPhase() == api.PhaseFailed {
-		logger.Info("Object is in failed state, ignoring")
 
 		return ctrl.Result{}, nil
 	}
@@ -257,7 +246,7 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 	if err := r.setOwner(ctx, obj, owner); err != nil {
 		logger.Error("Failed to set owner reference", zap.Error(err))
 
-		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
+		r.Recorder.Eventf(obj, corev1.EventTypeWarning,
 			"Failed", "Failed to set owner reference: %s", err)
 
 		r.markFailed(ctx, obj,
@@ -270,7 +259,7 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 	if err != nil {
 		logger.Error("Failed to map to LDAP entry", zap.Error(err))
 
-		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
+		r.Recorder.Eventf(obj, corev1.EventTypeWarning,
 			"Failed", "Failed to map to ldap entry: %s", err)
 
 		r.markFailed(ctx, obj,
@@ -283,7 +272,7 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 	if err != nil {
 		logger.Error("Failed to create or update LDAP entry", zap.Error(err))
 
-		r.EventRecorder.Eventf(obj, corev1.EventTypeWarning,
+		r.Recorder.Eventf(obj, corev1.EventTypeWarning,
 			"Failed", "Failed to create or update ldap entry: %s", err)
 
 		r.markFailed(ctx, obj,
@@ -293,7 +282,7 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if created {
-		r.EventRecorder.Event(obj, corev1.EventTypeNormal,
+		r.Recorder.Event(obj, corev1.EventTypeNormal,
 			"Created", "Successfully created")
 
 		if err := r.markReady(ctx, obj); err != nil {
@@ -311,11 +300,13 @@ func (r *LDAPObjectReconciler[T, E]) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *LDAPObjectReconciler[T, E]) newInstance() T {
+	// Oh god, what have I done?
 	return reflect.New(reflect.TypeOf((*T)(nil)).Elem().Elem()).Interface().(T)
 }
 
 func (r *LDAPObjectReconciler[T, E]) markPending(ctx context.Context, obj T) error {
-	_, err := controllerutil.CreateOrPatch(ctx, r.Client, obj, func() error {
+	key := client.ObjectKeyFromObject(obj)
+	err := updater.UpdateStatus(ctx, r.Client, key, obj, func() error {
 		obj.SetStatus(api.SimpleStatus{
 			Phase:              api.PhasePending,
 			ObservedGeneration: obj.GetGeneration(),
@@ -331,7 +322,8 @@ func (r *LDAPObjectReconciler[T, E]) markPending(ctx context.Context, obj T) err
 }
 
 func (r *LDAPObjectReconciler[T, E]) markReady(ctx context.Context, obj T) error {
-	_, err := controllerutil.CreateOrPatch(ctx, r.Client, obj, func() error {
+	key := client.ObjectKeyFromObject(obj)
+	err := updater.UpdateStatus(ctx, r.Client, key, obj, func() error {
 		obj.SetStatus(api.SimpleStatus{
 			Phase:              api.PhaseReady,
 			ObservedGeneration: obj.GetGeneration(),
@@ -349,7 +341,8 @@ func (r *LDAPObjectReconciler[T, E]) markReady(ctx context.Context, obj T) error
 func (r *LDAPObjectReconciler[T, E]) markFailed(ctx context.Context, obj T, err error) {
 	logger := zaplogr.FromContext(ctx)
 
-	_, updateErr := controllerutil.CreateOrPatch(ctx, r.Client, obj, func() error {
+	key := client.ObjectKeyFromObject(obj)
+	updateErr := updater.UpdateStatus(ctx, r.Client, key, obj, func() error {
 		obj.SetStatus(api.SimpleStatus{
 			Phase:              api.PhaseFailed,
 			ObservedGeneration: obj.GetGeneration(),

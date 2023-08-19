@@ -61,8 +61,10 @@ type LDAPGroupList struct {
 
 func (g *LDAPGroup) GetDistinguishedName(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) (string, error) {
 	if g.Spec.ParentRef != nil {
-		parent, err := g.Spec.ParentRef.Resolve(ctx, reader, scheme, g)
-		if err != nil {
+		parent, ok, err := g.Spec.ParentRef.Resolve(ctx, reader, scheme, g)
+		if !ok && err == nil {
+			return "", fmt.Errorf("referenced parent not found")
+		} else if err != nil {
 			return "", err
 		}
 
@@ -79,8 +81,10 @@ func (g *LDAPGroup) GetDistinguishedName(ctx context.Context, reader client.Read
 		return "cn=" + g.Spec.Name + "," + parentDN, nil
 	}
 
-	directory, err := g.Spec.DirectoryRef.Resolve(ctx, reader, scheme, g)
-	if err != nil {
+	directory, ok, err := g.Spec.DirectoryRef.Resolve(ctx, reader, scheme, g)
+	if !ok && err == nil {
+		return "", fmt.Errorf("referenced directory not found")
+	} else if err != nil {
 		return "", err
 	}
 
@@ -97,18 +101,20 @@ func (g *LDAPGroup) GetDistinguishedName(ctx context.Context, reader client.Read
 	return "cn=" + g.Spec.Name + "," + directoryDN, nil
 }
 
-func (g *LDAPGroup) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) error {
-	if _, err := g.Spec.DirectoryRef.Resolve(ctx, reader, scheme, g); err != nil {
-		return err
+func (g *LDAPGroup) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) (bool, error) {
+	_, ok, err := g.Spec.DirectoryRef.Resolve(ctx, reader, scheme, g)
+	if !ok || err != nil {
+		return ok, err
 	}
 
 	if g.Spec.ParentRef != nil {
-		if _, err := g.Spec.ParentRef.Resolve(ctx, reader, scheme, g); err != nil {
-			return err
+		_, ok, err = g.Spec.ParentRef.Resolve(ctx, reader, scheme, g)
+		if !ok || err != nil {
+			return ok, err
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 func (g *LDAPGroup) GetLDAPObjectSpec() *api.LDAPObjectSpec {

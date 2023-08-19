@@ -58,8 +58,10 @@ type LDAPOrganizationalUnitList struct {
 
 func (ou *LDAPOrganizationalUnit) GetDistinguishedName(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) (string, error) {
 	if ou.Spec.ParentRef != nil {
-		parent, err := ou.Spec.ParentRef.Resolve(ctx, reader, scheme, ou)
-		if err != nil {
+		parent, ok, err := ou.Spec.ParentRef.Resolve(ctx, reader, scheme, ou)
+		if !ok && err == nil {
+			return "", fmt.Errorf("referenced parent not found")
+		} else if err != nil {
 			return "", err
 		}
 
@@ -76,8 +78,10 @@ func (ou *LDAPOrganizationalUnit) GetDistinguishedName(ctx context.Context, read
 		return "ou=" + ou.Spec.Name + "," + parentDN, nil
 	}
 
-	directory, err := ou.Spec.DirectoryRef.Resolve(ctx, reader, scheme, ou)
-	if err != nil {
+	directory, ok, err := ou.Spec.DirectoryRef.Resolve(ctx, reader, scheme, ou)
+	if !ok && err == nil {
+		return "", fmt.Errorf("referenced directory not found")
+	} else if err != nil {
 		return "", err
 	}
 
@@ -94,18 +98,20 @@ func (ou *LDAPOrganizationalUnit) GetDistinguishedName(ctx context.Context, read
 	return "ou=" + ou.Spec.Name + "," + directoryDN, nil
 }
 
-func (ou *LDAPOrganizationalUnit) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) error {
-	if _, err := ou.Spec.DirectoryRef.Resolve(ctx, reader, scheme, ou); err != nil {
-		return err
+func (ou *LDAPOrganizationalUnit) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) (bool, error) {
+	_, ok, err := ou.Spec.DirectoryRef.Resolve(ctx, reader, scheme, ou)
+	if !ok || err != nil {
+		return ok, err
 	}
 
 	if ou.Spec.ParentRef != nil {
-		if _, err := ou.Spec.ParentRef.Resolve(ctx, reader, scheme, ou); err != nil {
-			return err
+		_, ok, err = ou.Spec.ParentRef.Resolve(ctx, reader, scheme, ou)
+		if !ok || err != nil {
+			return ok, err
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 func (ou *LDAPOrganizationalUnit) GetLDAPObjectSpec() *api.LDAPObjectSpec {

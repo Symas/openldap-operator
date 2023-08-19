@@ -117,18 +117,18 @@ func (s *LDAPDirectory) GetDistinguishedName(_ context.Context, _ client.Reader,
 	return "dc=" + strings.Join(strings.Split(s.Spec.Domain, "."), ",dc="), nil
 }
 
-func (s *LDAPDirectory) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) error {
-	_, err := s.Spec.AdminPasswordSecretRef.Resolve(ctx, reader, scheme, s)
-	if err != nil {
-		return err
+func (s *LDAPDirectory) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) (bool, error) {
+	_, ok, err := s.Spec.AdminPasswordSecretRef.Resolve(ctx, reader, scheme, s)
+	if !ok || err != nil {
+		return ok, err
 	}
 
-	_, err = s.Spec.CertificateSecretRef.Resolve(ctx, reader, scheme, s)
-	if err != nil {
-		return err
+	_, ok, err = s.Spec.CertificateSecretRef.Resolve(ctx, reader, scheme, s)
+	if !ok || err != nil {
+		return ok, err
 	}
 
-	return nil
+	return true, nil
 }
 
 func init() {

@@ -112,9 +112,9 @@ func main() {
 		WithScheme(mgr.GetScheme())
 
 	if err = (&controller.LDAPDirectoryReconciler{
-		Client:        mgr.GetClient(),
-		Scheme:        mgr.GetScheme(),
-		EventRecorder: mgr.GetEventRecorderFor("ldapdirectory-controller"),
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("ldapdirectory-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "LDAPDirectory")
 		os.Exit(1)
@@ -124,7 +124,7 @@ func main() {
 		*openldapv1alpha1.LDAPGroup, *ldap.Group]{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
-		EventRecorder:     mgr.GetEventRecorderFor("ldapgroup-controller"),
+		Recorder:          mgr.GetEventRecorderFor("ldapgroup-controller"),
 		LDAPClientBuilder: ldapClientBuilder,
 		MapToEntry:        mapper.GroupToEntry,
 	}).SetupWithManager(mgr); err != nil {
@@ -136,7 +136,7 @@ func main() {
 		*openldapv1alpha1.LDAPOrganizationalUnit, *ldap.OrganizationalUnit]{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
-		EventRecorder:     mgr.GetEventRecorderFor("ldaporganizationalunit-controller"),
+		Recorder:          mgr.GetEventRecorderFor("ldaporganizationalunit-controller"),
 		LDAPClientBuilder: ldapClientBuilder,
 		MapToEntry:        mapper.OrganizationalUnitToEntry,
 	}).SetupWithManager(mgr); err != nil {
@@ -148,7 +148,7 @@ func main() {
 		*openldapv1alpha1.LDAPUser, *ldap.User]{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
-		EventRecorder:     mgr.GetEventRecorderFor("ldapuser-controller"),
+		Recorder:          mgr.GetEventRecorderFor("ldapuser-controller"),
 		LDAPClientBuilder: ldapClientBuilder,
 		MapToEntry:        mapper.UserToEntry,
 	}).SetupWithManager(mgr); err != nil {

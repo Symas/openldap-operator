@@ -25,7 +25,6 @@ import (
 
 	"github.com/gpu-ninja/openldap-operator/api"
 	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/constants"
 	"github.com/gpu-ninja/openldap-operator/internal/controller"
 	"github.com/gpu-ninja/openldap-operator/internal/ldap"
 	"github.com/gpu-ninja/openldap-operator/internal/mapper"
@@ -68,12 +67,12 @@ func TestLDAPObjectReconciler(t *testing.T) {
 			Name:      "test-user",
 			Namespace: "default",
 			Finalizers: []string{
-				constants.FinalizerName,
+				controller.FinalizerName,
 			},
 		},
 		Spec: openldapv1alpha1.LDAPUserSpec{
 			LDAPObjectSpec: api.LDAPObjectSpec{
-				DirectoryRef: api.LDAPDirectoryReference{
+				DirectoryRef: api.LocalLDAPDirectoryReference{
 					Name: "test-directory",
 				},
 				ParentRef: &reference.LocalObjectReference{
@@ -105,7 +104,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 		Spec: openldapv1alpha1.LDAPOrganizationalUnitSpec{
 			LDAPObjectSpec: api.LDAPObjectSpec{
-				DirectoryRef: api.LDAPDirectoryReference{
+				DirectoryRef: api.LocalLDAPDirectoryReference{
 					Name: "test-directory",
 				},
 			},
@@ -152,7 +151,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 	t.Run("Create or Update", func(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		subResourceClient.Reset()
 
@@ -191,10 +190,10 @@ func TestLDAPObjectReconciler(t *testing.T) {
 	t.Run("Delete", func(t *testing.T) {
 		deletingUser := user.DeepCopy()
 		deletingUser.DeletionTimestamp = &metav1.Time{Time: metav1.Now().Add(-1 * time.Second)}
-		deletingUser.Finalizers = []string{constants.FinalizerName}
+		deletingUser.Finalizers = []string{controller.FinalizerName}
 
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		subResourceClient.Reset()
 
@@ -226,7 +225,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 	t.Run("References Not Resolvable", func(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		subResourceClient.Reset()
 
@@ -259,7 +258,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 	t.Run("Directory Not Ready", func(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		subResourceClient.Reset()
 
@@ -295,7 +294,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 	t.Run("Parent Not Ready", func(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		subResourceClient.Reset()
 
@@ -331,7 +330,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 
 	t.Run("Failure", func(t *testing.T) {
 		eventRecorder := record.NewFakeRecorder(2)
-		r.EventRecorder = eventRecorder
+		r.Recorder = eventRecorder
 
 		subResourceClient.Reset()
 

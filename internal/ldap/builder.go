@@ -73,16 +73,20 @@ func (b *clientBuilderImpl) WithDirectory(directory *openldapv1alpha1.LDAPDirect
 
 func (b *clientBuilderImpl) Build(ctx context.Context) (Client, error) {
 	// Get the admin password.
-	adminPasswordSecret, err := b.directory.Spec.AdminPasswordSecretRef.Resolve(ctx, b.reader, b.scheme, b.directory)
-	if err != nil {
+	adminPasswordSecret, ok, err := b.directory.Spec.AdminPasswordSecretRef.Resolve(ctx, b.reader, b.scheme, b.directory)
+	if !ok && err == nil {
+		return nil, fmt.Errorf("referenced admin password secret not found")
+	} else if err != nil {
 		return nil, fmt.Errorf("failed to resolve admin password secret reference: %w", err)
 	}
 
 	adminPassword := string(adminPasswordSecret.(*corev1.Secret).Data["password"])
 
 	// Get the CA certificate..
-	certificateSecret, err := b.directory.Spec.CertificateSecretRef.Resolve(ctx, b.reader, b.scheme, b.directory)
-	if err != nil {
+	certificateSecret, ok, err := b.directory.Spec.CertificateSecretRef.Resolve(ctx, b.reader, b.scheme, b.directory)
+	if !ok && err == nil {
+		return nil, fmt.Errorf("referenced certificate secret not found")
+	} else if err != nil {
 		return nil, fmt.Errorf("failed to resolve certificate secret reference: %w", err)
 	}
 
