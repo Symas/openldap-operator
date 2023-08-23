@@ -1,4 +1,4 @@
-module github.com/gpu-ninja/openldap-operator/tests
+module github.com/gpu-ninja/ldap-operator/tests
 
 go 1.20
 

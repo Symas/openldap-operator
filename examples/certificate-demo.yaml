@@ -9,5 +9,4 @@ spec:
   issuerRef:
     name: selfsigned
   dnsNames:
-  - demo
-  - demo.default.svc.cluster.local
+  - ldap-demo.default.svc.cluster.local

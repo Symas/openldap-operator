@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: openldap-operator
-  namespace: openldap-operator
+  name: ldap-operator
+  namespace: ldap-operator
   labels:
     control-plane: controller-manager
     app.kubernetes.io/name: deployment
-    app.kubernetes.io/instance: openldap-operator
+    app.kubernetes.io/instance: ldap-operator
     app.kubernetes.io/component: manager
-    app.kubernetes.io/created-by: openldap-operator
-    app.kubernetes.io/part-of: openldap-operator
+    app.kubernetes.io/created-by: ldap-operator
+    app.kubernetes.io/part-of: ldap-operator
 spec:
   selector:
     matchLabels:
@@ -29,7 +29,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: ghcr.io/gpu-ninja/openldap-operator:latest
+        image: ghcr.io/gpu-ninja/ldap-operator:latest
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

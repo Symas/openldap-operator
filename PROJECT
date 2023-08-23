@@ -5,43 +5,43 @@
 domain: gpu-ninja.com
 layout:
 - go.kubebuilder.io/v4
-projectName: openldap-operator
-repo: github.com/gpu-ninja/openldap-operator
+projectName: ldap-operator
+repo: github.com/gpu-ninja/ldap-operator
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
   domain: gpu-ninja.com
-  group: openldap
+  group: ldap
   kind: LDAPDirectory
-  path: github.com/gpu-ninja/openldap-operator/api/v1alpha1
+  path: github.com/gpu-ninja/ldap-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
   domain: gpu-ninja.com
-  group: openldap
+  group: ldap
   kind: OrganizationalUnit
-  path: github.com/gpu-ninja/openldap-operator/api/v1alpha1
+  path: github.com/gpu-ninja/ldap-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
   domain: gpu-ninja.com
-  group: openldap
+  group: ldap
   kind: User
-  path: github.com/gpu-ninja/openldap-operator/api/v1alpha1
+  path: github.com/gpu-ninja/ldap-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
   domain: gpu-ninja.com
-  group: openldap
+  group: ldap
   kind: Group
-  path: github.com/gpu-ninja/openldap-operator/api/v1alpha1
+  path: github.com/gpu-ninja/ldap-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

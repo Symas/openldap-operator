@@ -23,11 +23,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gpu-ninja/openldap-operator/api"
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/controller"
-	"github.com/gpu-ninja/openldap-operator/internal/ldap"
-	"github.com/gpu-ninja/openldap-operator/internal/mapper"
+	"github.com/gpu-ninja/ldap-operator/api"
+	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/ldap-operator/internal/controller"
+	"github.com/gpu-ninja/ldap-operator/internal/ldap"
+	"github.com/gpu-ninja/ldap-operator/internal/mapper"
 	fakeutils "github.com/gpu-ninja/operator-utils/fake"
 	"github.com/gpu-ninja/operator-utils/reference"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
@@ -59,10 +59,10 @@ func TestLDAPObjectReconciler(t *testing.T) {
 	err = appsv1.AddToScheme(scheme)
 	require.NoError(t, err)
 
-	err = openldapv1alpha1.AddToScheme(scheme)
+	err = ldapv1alpha1.AddToScheme(scheme)
 	require.NoError(t, err)
 
-	user := &openldapv1alpha1.LDAPUser{
+	user := &ldapv1alpha1.LDAPUser{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-user",
 			Namespace: "default",
@@ -70,7 +70,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 				controller.FinalizerName,
 			},
 		},
-		Spec: openldapv1alpha1.LDAPUserSpec{
+		Spec: ldapv1alpha1.LDAPUserSpec{
 			LDAPObjectSpec: api.LDAPObjectSpec{
 				DirectoryRef: api.LocalLDAPDirectoryReference{
 					Name: "test-directory",
@@ -97,12 +97,12 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 	}
 
-	orgUnit := &openldapv1alpha1.LDAPOrganizationalUnit{
+	orgUnit := &ldapv1alpha1.LDAPOrganizationalUnit{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-ou",
 			Namespace: "default",
 		},
-		Spec: openldapv1alpha1.LDAPOrganizationalUnitSpec{
+		Spec: ldapv1alpha1.LDAPOrganizationalUnitSpec{
 			LDAPObjectSpec: api.LDAPObjectSpec{
 				DirectoryRef: api.LocalLDAPDirectoryReference{
 					Name: "test-directory",
@@ -115,12 +115,12 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 	}
 
-	directory := &openldapv1alpha1.LDAPDirectory{
+	directory := &ldapv1alpha1.LDAPDirectory{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-directory",
 			Namespace: "default",
 		},
-		Spec: openldapv1alpha1.LDAPDirectorySpec{
+		Spec: ldapv1alpha1.LDAPDirectorySpec{
 			Domain: "example.com",
 			AdminPasswordSecretRef: reference.LocalSecretReference{
 				Name: "admin-password",
@@ -129,8 +129,8 @@ func TestLDAPObjectReconciler(t *testing.T) {
 				Name: "certificate",
 			},
 		},
-		Status: openldapv1alpha1.LDAPDirectoryStatus{
-			Phase: openldapv1alpha1.LDAPDirectoryPhaseReady,
+		Status: ldapv1alpha1.LDAPDirectoryStatus{
+			Phase: ldapv1alpha1.LDAPDirectoryPhaseReady,
 		},
 	}
 
@@ -142,7 +142,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 	}
 
-	r := &controller.LDAPObjectReconciler[*openldapv1alpha1.LDAPUser, *ldap.User]{
+	r := &controller.LDAPObjectReconciler[*ldapv1alpha1.LDAPUser, *ldap.User]{
 		Scheme:     scheme,
 		MapToEntry: mapper.UserToEntry,
 	}
@@ -263,7 +263,7 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		subResourceClient.Reset()
 
 		notReadyDirectory := directory.DeepCopy()
-		notReadyDirectory.Status.Phase = openldapv1alpha1.LDAPDirectoryPhasePending
+		notReadyDirectory.Status.Phase = ldapv1alpha1.LDAPDirectoryPhasePending
 
 		r.Client = fake.NewClientBuilder().
 			WithScheme(scheme).

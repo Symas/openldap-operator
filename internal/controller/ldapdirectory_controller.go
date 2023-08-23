@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
+	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/operator-utils/updater"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -53,13 +53,13 @@ import (
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapdirectories,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapdirectories/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapdirectories/finalizers,verbs=update
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapdirectories,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapdirectories/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapdirectories/finalizers,verbs=update
 
 const (
 	// FinalizerName is the name of the finalizer used by controllers
-	FinalizerName = "openldap.gpu-ninja.com/finalizer"
+	FinalizerName = "ldap.gpu-ninja.com/finalizer"
 	// reconcileRetryInterval is the interval at which the controller will retry
 	// to reconcile a resource
 	reconcileRetryInterval = 5 * time.Second
@@ -77,7 +77,7 @@ func (r *LDAPDirectoryReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	logger.Info("Reconciling")
 
-	var directory openldapv1alpha1.LDAPDirectory
+	var directory ldapv1alpha1.LDAPDirectory
 	if err := r.Get(ctx, req.NamespacedName, &directory); err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -215,7 +215,7 @@ func (r *LDAPDirectoryReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{RequeueAfter: reconcileRetryInterval}, nil
 	}
 
-	if directory.Status.Phase != openldapv1alpha1.LDAPDirectoryPhaseReady {
+	if directory.Status.Phase != ldapv1alpha1.LDAPDirectoryPhaseReady {
 		r.Recorder.Event(&directory, corev1.EventTypeNormal,
 			"Created", "Successfully created")
 
@@ -229,20 +229,20 @@ func (r *LDAPDirectoryReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 func (r *LDAPDirectoryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&openldapv1alpha1.LDAPDirectory{}).
+		For(&ldapv1alpha1.LDAPDirectory{}).
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Service{}).
 		Complete(r)
 }
 
-func (r *LDAPDirectoryReconciler) markPending(ctx context.Context, directory *openldapv1alpha1.LDAPDirectory) error {
+func (r *LDAPDirectoryReconciler) markPending(ctx context.Context, directory *ldapv1alpha1.LDAPDirectory) error {
 	key := client.ObjectKeyFromObject(directory)
 	err := updater.UpdateStatus(ctx, r.Client, key, directory, func() error {
 		directory.Status.ObservedGeneration = directory.ObjectMeta.Generation
-		directory.Status.Phase = openldapv1alpha1.LDAPDirectoryPhasePending
+		directory.Status.Phase = ldapv1alpha1.LDAPDirectoryPhasePending
 
 		meta.SetStatusCondition(&directory.Status.Conditions, metav1.Condition{
-			Type:               string(openldapv1alpha1.LDAPDirectoryConditionTypePending),
+			Type:               string(ldapv1alpha1.LDAPDirectoryConditionTypePending),
 			Status:             metav1.ConditionTrue,
 			ObservedGeneration: directory.ObjectMeta.Generation,
 			Reason:             "Pending",
@@ -258,14 +258,14 @@ func (r *LDAPDirectoryReconciler) markPending(ctx context.Context, directory *op
 	return nil
 }
 
-func (r *LDAPDirectoryReconciler) markReady(ctx context.Context, directory *openldapv1alpha1.LDAPDirectory) error {
+func (r *LDAPDirectoryReconciler) markReady(ctx context.Context, directory *ldapv1alpha1.LDAPDirectory) error {
 	key := client.ObjectKeyFromObject(directory)
 	err := updater.UpdateStatus(ctx, r.Client, key, directory, func() error {
 		directory.Status.ObservedGeneration = directory.ObjectMeta.Generation
-		directory.Status.Phase = openldapv1alpha1.LDAPDirectoryPhaseReady
+		directory.Status.Phase = ldapv1alpha1.LDAPDirectoryPhaseReady
 
 		meta.SetStatusCondition(&directory.Status.Conditions, metav1.Condition{
-			Type:               string(openldapv1alpha1.LDAPDirectoryConditionTypeReady),
+			Type:               string(ldapv1alpha1.LDAPDirectoryConditionTypeReady),
 			Status:             metav1.ConditionTrue,
 			ObservedGeneration: directory.ObjectMeta.Generation,
 			Reason:             "Ready",
@@ -281,16 +281,16 @@ func (r *LDAPDirectoryReconciler) markReady(ctx context.Context, directory *open
 	return nil
 }
 
-func (r *LDAPDirectoryReconciler) markFailed(ctx context.Context, directory *openldapv1alpha1.LDAPDirectory, err error) {
+func (r *LDAPDirectoryReconciler) markFailed(ctx context.Context, directory *ldapv1alpha1.LDAPDirectory, err error) {
 	logger := zaplogr.FromContext(ctx)
 
 	key := client.ObjectKeyFromObject(directory)
 	updateErr := updater.UpdateStatus(ctx, r.Client, key, directory, func() error {
 		directory.Status.ObservedGeneration = directory.ObjectMeta.Generation
-		directory.Status.Phase = openldapv1alpha1.LDAPDirectoryPhaseFailed
+		directory.Status.Phase = ldapv1alpha1.LDAPDirectoryPhaseFailed
 
 		meta.SetStatusCondition(&directory.Status.Conditions, metav1.Condition{
-			Type:               string(openldapv1alpha1.LDAPDirectoryConditionTypeFailed),
+			Type:               string(ldapv1alpha1.LDAPDirectoryConditionTypeFailed),
 			Status:             metav1.ConditionTrue,
 			ObservedGeneration: directory.ObjectMeta.Generation,
 			Reason:             "Failed",
@@ -304,7 +304,7 @@ func (r *LDAPDirectoryReconciler) markFailed(ctx context.Context, directory *ope
 	}
 }
 
-func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *openldapv1alpha1.LDAPDirectory) (*appsv1.StatefulSet, error) {
+func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LDAPDirectory) (*appsv1.StatefulSet, error) {
 	storageSize, err := resource.ParseQuantity(directory.Spec.Storage.Size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse requested storage size: %w", err)
@@ -347,31 +347,31 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *openldapv1alpha
 
 	sts := appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      directory.Name,
+			Name:      "ldap-" + directory.Name,
 			Namespace: directory.Namespace,
 			Labels:    make(map[string]string),
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas:        ptr.To(int32(1)),
-			ServiceName:     "openldap",
+			ServiceName:     "ldap",
 			MinReadySeconds: 10,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app.kubernetes.io/name":     "openldap",
+					"app.kubernetes.io/name":     "ldap",
 					"app.kubernetes.io/instance": directory.Name,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app.kubernetes.io/name":     "openldap",
+						"app.kubernetes.io/name":     "ldap",
 						"app.kubernetes.io/instance": directory.Name,
 					},
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: ptr.To(int64(10)),
 					SecurityContext: &corev1.PodSecurityContext{
-						// The default Debian openldap group.
+						// The default Debian OpenLDAP group.
 						FSGroup: ptr.To(int64(101)),
 					},
 					InitContainers: []corev1.Container{
@@ -500,15 +500,15 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *openldapv1alpha
 
 	sts.ObjectMeta.Labels["app.kubernetes.io/name"] = "directory"
 	sts.ObjectMeta.Labels["app.kubernetes.io/instance"] = directory.Name
-	sts.ObjectMeta.Labels["app.kubernetes.io/managed-by"] = "openldap-operator"
+	sts.ObjectMeta.Labels["app.kubernetes.io/managed-by"] = "ldap-operator"
 
 	return &sts, nil
 }
 
-func (r *LDAPDirectoryReconciler) isStatefulSetReady(ctx context.Context, directory *openldapv1alpha1.LDAPDirectory) (bool, error) {
+func (r *LDAPDirectoryReconciler) isStatefulSetReady(ctx context.Context, directory *ldapv1alpha1.LDAPDirectory) (bool, error) {
 	sts := appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      directory.Name,
+			Name:      "ldap-" + directory.Name,
 			Namespace: directory.Namespace,
 		},
 	}
@@ -520,16 +520,16 @@ func (r *LDAPDirectoryReconciler) isStatefulSetReady(ctx context.Context, direct
 	return sts.Status.ReadyReplicas == *sts.Spec.Replicas, nil
 }
 
-func (r *LDAPDirectoryReconciler) serviceTemplate(directory *openldapv1alpha1.LDAPDirectory) (*corev1.Service, error) {
+func (r *LDAPDirectoryReconciler) serviceTemplate(directory *ldapv1alpha1.LDAPDirectory) (*corev1.Service, error) {
 	svc := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      directory.Name,
+			Name:      "ldap-" + directory.Name,
 			Namespace: directory.Namespace,
 			Labels:    make(map[string]string),
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"app.kubernetes.io/name":     "openldap",
+				"app.kubernetes.io/name":     "ldap",
 				"app.kubernetes.io/instance": directory.Name,
 			},
 			Ports: []corev1.ServicePort{
@@ -553,7 +553,7 @@ func (r *LDAPDirectoryReconciler) serviceTemplate(directory *openldapv1alpha1.LD
 
 	svc.ObjectMeta.Labels["app.kubernetes.io/name"] = "directory"
 	svc.ObjectMeta.Labels["app.kubernetes.io/instance"] = directory.Name
-	svc.ObjectMeta.Labels["app.kubernetes.io/managed-by"] = "openldap-operator"
+	svc.ObjectMeta.Labels["app.kubernetes.io/managed-by"] = "ldap-operator"
 
 	return &svc, nil
 }

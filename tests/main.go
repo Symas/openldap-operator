@@ -57,14 +57,14 @@ func main() {
 
 	buildContextPath := filepath.Clean(filepath.Join(pwd, ".."))
 
-	imageName := "ghcr.io/gpu-ninja/openldap-operator:latest-dev"
+	imageName := "ghcr.io/gpu-ninja/ldap-operator:latest-dev"
 	if err := buildOperatorImage(buildContextPath, "Dockerfile", imageName); err != nil {
 		logger.Fatal(red("Failed to build operator image"), zap.Error(err))
 	}
 
 	logger.Info("Creating k3d cluster")
 
-	clusterName := "openldap-operator-test"
+	clusterName := "ldap-operator-test"
 	if err := createK3dCluster(clusterName); err != nil {
 		logger.Fatal(red("Failed to create k3d cluster"), zap.Error(err))
 	}
@@ -111,13 +111,13 @@ func main() {
 	}
 
 	userGVR := schema.GroupVersionResource{
-		Group:    "openldap.gpu-ninja.com",
+		Group:    "ldap.gpu-ninja.com",
 		Version:  "v1alpha1",
 		Resource: "ldapusers",
 	}
 
 	groupGVR := schema.GroupVersionResource{
-		Group:    "openldap.gpu-ninja.com",
+		Group:    "ldap.gpu-ninja.com",
 		Version:  "v1alpha1",
 		Resource: "ldapgroups",
 	}
@@ -225,7 +225,7 @@ func installOperator(configDir string) error {
 		return err
 	}
 
-	cmd = exec.Command("kapp", "deploy", "-y", "-a", "openldap-operator", "-f", "-")
+	cmd = exec.Command("kapp", "deploy", "-y", "-a", "ldap-operator", "-f", "-")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = bytes.NewReader(patchedYAML)
@@ -234,7 +234,7 @@ func installOperator(configDir string) error {
 }
 
 func createExampleResources(examplesDir string) error {
-	cmd := exec.Command("kapp", "deploy", "-y", "-a", "openldap-operator-examples", "-f", examplesDir)
+	cmd := exec.Command("kapp", "deploy", "-y", "-a", "ldap-operator-examples", "-f", examplesDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

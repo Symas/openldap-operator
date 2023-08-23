@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/gpu-ninja/openldap-operator/api"
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/ldap"
-	"github.com/gpu-ninja/openldap-operator/internal/mapper"
+	"github.com/gpu-ninja/ldap-operator/api"
+	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/ldap-operator/internal/ldap"
+	"github.com/gpu-ninja/ldap-operator/internal/mapper"
 	"github.com/gpu-ninja/operator-utils/updater"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
 	"go.uber.org/zap"
@@ -40,19 +40,19 @@ import (
 )
 
 // LDAPGroups
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapgroups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapgroups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapgroups/finalizers,verbs=update
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapgroups,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapgroups/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapgroups/finalizers,verbs=update
 
 // LDAPOrganizationalUnits
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldaporganizationalunits,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldaporganizationalunits/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldaporganizationalunits/finalizers,verbs=update
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldaporganizationalunits,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldaporganizationalunits/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldaporganizationalunits/finalizers,verbs=update
 
 // LDAPUsers
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapusers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapusers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapusers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapusers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapusers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapusers/finalizers,verbs=update
 
 type LDAPObjectReconciler[T api.LDAPObject, E ldap.Entry] struct {
 	client.Client
@@ -140,9 +140,9 @@ func (r *LDAPObjectReconciler[T, E]) Reconcile(ctx context.Context, req ctrl.Req
 
 		return ctrl.Result{}, nil
 	}
-	directory := directoryObj.(*openldapv1alpha1.LDAPDirectory)
+	directory := directoryObj.(*ldapv1alpha1.LDAPDirectory)
 
-	if directory.Status.Phase != openldapv1alpha1.LDAPDirectoryPhaseReady {
+	if directory.Status.Phase != ldapv1alpha1.LDAPDirectoryPhaseReady {
 		logger.Info("Referenced directory not ready",
 			zap.String("namespace", directory.Namespace),
 			zap.String("name", directory.Name))

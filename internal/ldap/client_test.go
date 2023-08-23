@@ -25,8 +25,8 @@ import (
 	"strings"
 	"testing"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/ldap"
+	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/ldap-operator/internal/ldap"
 	"github.com/gpu-ninja/operator-utils/name"
 	"github.com/gpu-ninja/operator-utils/reference"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +40,7 @@ import (
 )
 
 const (
-	image = "ghcr.io/gpu-ninja/openldap-operator/openldap:v0.1.1"
+	image = "ghcr.io/gpu-ninja/ldap-operator/openldap:latest"
 )
 
 func TestClient(t *testing.T) {
@@ -99,7 +99,7 @@ func TestClient(t *testing.T) {
 		WaitingFor: wait.ForExposedPort(),
 	}
 
-	// Start the openldap directory.
+	// Start the ldap directory.
 	c, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
@@ -111,12 +111,12 @@ func TestClient(t *testing.T) {
 		}
 	}()
 
-	directory := openldapv1alpha1.LDAPDirectory{
+	directory := ldapv1alpha1.LDAPDirectory{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "default",
 		},
-		Spec: openldapv1alpha1.LDAPDirectorySpec{
+		Spec: ldapv1alpha1.LDAPDirectorySpec{
 			Domain: "example.com",
 			AdminPasswordSecretRef: reference.LocalSecretReference{
 				Name: "admin-password",

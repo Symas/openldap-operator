@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/controller"
+	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/ldap-operator/internal/controller"
 	fakeutils "github.com/gpu-ninja/operator-utils/fake"
 	"github.com/gpu-ninja/operator-utils/reference"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
@@ -55,16 +55,16 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 	err = appsv1.AddToScheme(scheme)
 	require.NoError(t, err)
 
-	err = openldapv1alpha1.AddToScheme(scheme)
+	err = ldapv1alpha1.AddToScheme(scheme)
 	require.NoError(t, err)
 
-	directory := &openldapv1alpha1.LDAPDirectory{
+	directory := &ldapv1alpha1.LDAPDirectory{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "default",
 		},
-		Spec: openldapv1alpha1.LDAPDirectorySpec{
-			Image:        "ghcr.io/gpu-ninja/openldap-operator/openldap:latest",
+		Spec: ldapv1alpha1.LDAPDirectorySpec{
+			Image:        "ghcr.io/gpu-ninja/ldap-operator/openldap:latest",
 			Domain:       "example.com",
 			Organization: "Acme Widgets Inc.",
 			AdminPasswordSecretRef: reference.LocalSecretReference{
@@ -73,7 +73,7 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 			CertificateSecretRef: reference.LocalSecretReference{
 				Name: "demo-tls",
 			},
-			Storage: openldapv1alpha1.LDAPDirectoryStorageSpec{
+			Storage: ldapv1alpha1.LDAPDirectoryStorageSpec{
 				Size: "1Gi",
 			},
 		},
@@ -146,19 +146,19 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 		err = subResourceClient.Get(ctx, directory, updatedDirectory)
 		require.NoError(t, err)
 
-		assert.Equal(t, openldapv1alpha1.LDAPDirectoryPhasePending, updatedDirectory.Status.Phase)
+		assert.Equal(t, ldapv1alpha1.LDAPDirectoryPhasePending, updatedDirectory.Status.Phase)
 		assert.Len(t, updatedDirectory.Status.Conditions, 1)
 
 		var svc corev1.Service
 		err = r.Client.Get(ctx, types.NamespacedName{
-			Name:      directory.Name,
+			Name:      "ldap-" + directory.Name,
 			Namespace: directory.Namespace,
 		}, &svc)
 		require.NoError(t, err)
 
 		var sts appsv1.StatefulSet
 		err = r.Client.Get(ctx, types.NamespacedName{
-			Name:      directory.Name,
+			Name:      "ldap-" + directory.Name,
 			Namespace: directory.Namespace,
 		}, &sts)
 		require.NoError(t, err)
@@ -189,7 +189,7 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 		err = subResourceClient.Get(ctx, directory, updatedDirectory)
 		require.NoError(t, err)
 
-		assert.Equal(t, openldapv1alpha1.LDAPDirectoryPhaseReady, updatedDirectory.Status.Phase)
+		assert.Equal(t, ldapv1alpha1.LDAPDirectoryPhaseReady, updatedDirectory.Status.Phase)
 		assert.Len(t, updatedDirectory.Status.Conditions, 2)
 	})
 
@@ -249,7 +249,7 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 		err = subResourceClient.Get(ctx, directory, updatedDirectory)
 		require.NoError(t, err)
 
-		assert.Equal(t, openldapv1alpha1.LDAPDirectoryPhasePending, updatedDirectory.Status.Phase)
+		assert.Equal(t, ldapv1alpha1.LDAPDirectoryPhasePending, updatedDirectory.Status.Phase)
 		assert.Len(t, updatedDirectory.Status.Conditions, 1)
 	})
 
@@ -291,6 +291,6 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 		err = subResourceClient.Get(ctx, directory, updatedDirectory)
 		require.NoError(t, err)
 
-		assert.Equal(t, openldapv1alpha1.LDAPDirectoryPhaseFailed, updatedDirectory.Status.Phase)
+		assert.Equal(t, ldapv1alpha1.LDAPDirectoryPhaseFailed, updatedDirectory.Status.Phase)
 	})
 }

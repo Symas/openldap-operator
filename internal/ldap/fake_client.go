@@ -20,7 +20,7 @@ package ldap
 import (
 	"context"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
+	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
 	"github.com/stretchr/testify/mock"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,7 +44,7 @@ func (b *fakeClientBuilder) WithScheme(_ *runtime.Scheme) ClientBuilder {
 	return b
 }
 
-func (b *fakeClientBuilder) WithDirectory(_ *openldapv1alpha1.LDAPDirectory) ClientBuilder {
+func (b *fakeClientBuilder) WithDirectory(_ *ldapv1alpha1.LDAPDirectory) ClientBuilder {
 	return b
 }
 

@@ -6,10 +6,10 @@ metadata:
     app.kubernetes.io/name: role
     app.kubernetes.io/instance: leader-election-role
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: openldap-operator
-    app.kubernetes.io/part-of: openldap-operator
+    app.kubernetes.io/created-by: ldap-operator
+    app.kubernetes.io/part-of: ldap-operator
   name: leader-election-role
-  namespace: openldap-operator
+  namespace: ldap-operator
 rules:
 - apiGroups:
   - ""

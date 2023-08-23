@@ -35,10 +35,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/controller"
-	"github.com/gpu-ninja/openldap-operator/internal/ldap"
-	"github.com/gpu-ninja/openldap-operator/internal/mapper"
+	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/ldap-operator/internal/controller"
+	"github.com/gpu-ninja/ldap-operator/internal/ldap"
+	"github.com/gpu-ninja/ldap-operator/internal/mapper"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
 	//+kubebuilder:scaffold:imports
 )
@@ -50,7 +50,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(openldapv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(ldapv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -121,7 +121,7 @@ func main() {
 	}
 
 	if err = (&controller.LDAPObjectReconciler[
-		*openldapv1alpha1.LDAPGroup, *ldap.Group]{
+		*ldapv1alpha1.LDAPGroup, *ldap.Group]{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		Recorder:          mgr.GetEventRecorderFor("ldapgroup-controller"),
@@ -133,7 +133,7 @@ func main() {
 	}
 
 	if err = (&controller.LDAPObjectReconciler[
-		*openldapv1alpha1.LDAPOrganizationalUnit, *ldap.OrganizationalUnit]{
+		*ldapv1alpha1.LDAPOrganizationalUnit, *ldap.OrganizationalUnit]{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		Recorder:          mgr.GetEventRecorderFor("ldaporganizationalunit-controller"),
@@ -145,7 +145,7 @@ func main() {
 	}
 
 	if err = (&controller.LDAPObjectReconciler[
-		*openldapv1alpha1.LDAPUser, *ldap.User]{
+		*ldapv1alpha1.LDAPUser, *ldap.User]{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		Recorder:          mgr.GetEventRecorderFor("ldapuser-controller"),

@@ -21,9 +21,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gpu-ninja/openldap-operator/api"
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/ldap"
+	"github.com/gpu-ninja/ldap-operator/api"
+	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/ldap-operator/internal/ldap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +31,7 @@ import (
 
 type Mapper[T api.LDAPObject, E ldap.Entry] func(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, dn string, obj T) (entry E, err error)
 
-func OrganizationalUnitToEntry(_ context.Context, _ client.Reader, _ *runtime.Scheme, dn string, obj *openldapv1alpha1.LDAPOrganizationalUnit) (*ldap.OrganizationalUnit, error) {
+func OrganizationalUnitToEntry(_ context.Context, _ client.Reader, _ *runtime.Scheme, dn string, obj *ldapv1alpha1.LDAPOrganizationalUnit) (*ldap.OrganizationalUnit, error) {
 	return &ldap.OrganizationalUnit{
 		DistinguishedName: dn,
 		Name:              obj.Spec.Name,
@@ -39,7 +39,7 @@ func OrganizationalUnitToEntry(_ context.Context, _ client.Reader, _ *runtime.Sc
 	}, nil
 }
 
-func GroupToEntry(_ context.Context, _ client.Reader, _ *runtime.Scheme, dn string, obj *openldapv1alpha1.LDAPGroup) (*ldap.Group, error) {
+func GroupToEntry(_ context.Context, _ client.Reader, _ *runtime.Scheme, dn string, obj *ldapv1alpha1.LDAPGroup) (*ldap.Group, error) {
 	return &ldap.Group{
 		DistinguishedName: dn,
 		Name:              obj.Spec.Name,
@@ -48,7 +48,7 @@ func GroupToEntry(_ context.Context, _ client.Reader, _ *runtime.Scheme, dn stri
 	}, nil
 }
 
-func UserToEntry(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, dn string, obj *openldapv1alpha1.LDAPUser) (*ldap.User, error) {
+func UserToEntry(ctx context.Context, reader client.Reader, scheme *runtime.Scheme, dn string, obj *ldapv1alpha1.LDAPUser) (*ldap.User, error) {
 	var password string
 	if obj.Spec.PaswordSecretRef != nil {
 		passwordSecret, ok, err := obj.Spec.PaswordSecretRef.Resolve(ctx, reader, scheme, obj)

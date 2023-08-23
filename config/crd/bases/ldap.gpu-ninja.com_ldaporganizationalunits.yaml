@@ -4,14 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.0
-  name: ldapgroups.openldap.gpu-ninja.com
+  name: ldaporganizationalunits.ldap.gpu-ninja.com
 spec:
-  group: openldap.gpu-ninja.com
+  group: ldap.gpu-ninja.com
   names:
-    kind: LDAPGroup
-    listKind: LDAPGroupList
-    plural: ldapgroups
-    singular: ldapgroup
+    kind: LDAPOrganizationalUnit
+    listKind: LDAPOrganizationalUnitList
+    plural: ldaporganizationalunits
+    singular: ldaporganizationalunit
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -24,7 +24,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: LDAPGroup is a LDAP group of names.
+        description: LDAPOrganizationalUnit is a LDAP organizational unit.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -41,7 +41,8 @@ spec:
           spec:
             properties:
               description:
-                description: Description is an optional description of this group.
+                description: Description is an optional description of this organizational
+                  unit.
                 type: string
               directoryRef:
                 description: DirectoryRef is a reference to the directory that owns
@@ -53,15 +54,8 @@ spec:
                 required:
                 - name
                 type: object
-              members:
-                description: Members is a list of distinguished names representing
-                  the members of this group.
-                items:
-                  type: string
-                minItems: 1
-                type: array
               name:
-                description: Name is the common name for this group.
+                description: Name is the common name for this organizational unit.
                 type: string
               parentRef:
                 description: ParentRef is an optional reference to the parent of this
@@ -79,7 +73,6 @@ spec:
                 type: object
             required:
             - directoryRef
-            - members
             - name
             type: object
           status:

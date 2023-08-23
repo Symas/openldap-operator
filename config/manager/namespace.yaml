@@ -4,8 +4,8 @@ metadata:
   labels:
     control-plane: controller-manager
     app.kubernetes.io/name: namespace
-    app.kubernetes.io/instance: openldap-operator
+    app.kubernetes.io/instance: ldap-operator
     app.kubernetes.io/component: manager
-    app.kubernetes.io/created-by: openldap-operator
-    app.kubernetes.io/part-of: openldap-operator
-  name: openldap-operator
+    app.kubernetes.io/created-by: ldap-operator
+    app.kubernetes.io/part-of: ldap-operator
+  name: ldap-operator

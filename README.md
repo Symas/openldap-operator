@@ -1,6 +1,6 @@
-# openldap-operator
+# ldap-operator
 
-A Kubernetes operator for deploying and managing OpenLDAP directories.
+A Kubernetes operator for deploying and managing LDAP directories.
 
 ## Getting Started
 
@@ -19,7 +19,7 @@ kapp deploy -a cert-manager -f https://github.com/cert-manager/cert-manager/rele
 #### Operator
 
 ```shell
-kapp deploy -a openldap-operator -f https://github.com/gpu-ninja/openldap-operator/releases/latest/download/openldap-operator.yaml
+kapp deploy -a ldap-operator -f https://github.com/gpu-ninja/ldap-operator/releases/latest/download/ldap-operator.yaml
 ```
 
 ### Starting a Directory

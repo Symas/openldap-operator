@@ -4,14 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.0
-  name: ldaporganizationalunits.openldap.gpu-ninja.com
+  name: ldapusers.ldap.gpu-ninja.com
 spec:
-  group: openldap.gpu-ninja.com
+  group: ldap.gpu-ninja.com
   names:
-    kind: LDAPOrganizationalUnit
-    listKind: LDAPOrganizationalUnitList
-    plural: ldaporganizationalunits
-    singular: ldaporganizationalunit
+    kind: LDAPUser
+    listKind: LDAPUserList
+    plural: ldapusers
+    singular: ldapuser
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -24,7 +24,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: LDAPOrganizationalUnit is a LDAP organizational unit.
+        description: LDAPUser is a LDAP user.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -40,10 +40,6 @@ spec:
             type: object
           spec:
             properties:
-              description:
-                description: Description is an optional description of this organizational
-                  unit.
-                type: string
               directoryRef:
                 description: DirectoryRef is a reference to the directory that owns
                   this object.
@@ -54,8 +50,11 @@ spec:
                 required:
                 - name
                 type: object
+              email:
+                description: Email is an optional email address of this user.
+                type: string
               name:
-                description: Name is the common name for this organizational unit.
+                description: Name is the full name of this user (commonName).
                 type: string
               parentRef:
                 description: ParentRef is an optional reference to the parent of this
@@ -71,9 +70,27 @@ spec:
                     description: Name is the name of the resource.
                     type: string
                 type: object
+              passwordSecretRef:
+                description: PasswordSecretRef is an optional reference to a secret
+                  containing the password of the user.
+                properties:
+                  name:
+                    description: Name is the name of the secret.
+                    type: string
+                required:
+                - name
+                type: object
+              surname:
+                description: Surname is the surname of this user.
+                type: string
+              username:
+                description: Username is the username (uid) for this user.
+                type: string
             required:
             - directoryRef
             - name
+            - surname
+            - username
             type: object
           status:
             description: SimpleStatus is a basic status type that can be reused across

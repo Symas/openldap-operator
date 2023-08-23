@@ -1,11 +1,11 @@
-apiVersion: openldap.gpu-ninja.com/v1alpha1
+apiVersion: ldap.gpu-ninja.com/v1alpha1
 kind: LDAPDirectory
 metadata:
   name: demo
   labels:
     app.kubernetes.io/component: server
 spec:
-  image: ghcr.io/gpu-ninja/openldap-operator/openldap:latest
+  image: ghcr.io/gpu-ninja/ldap-operator/openldap:latest
   domain: example.com
   organization: "Acme Widgets Inc."
   adminPasswordSecretRef:
@@ -13,4 +13,4 @@ spec:
   certificateSecretRef:
     name: demo-tls
   storage:
-    size: 1Gi
+    size: 100Mi

@@ -1,4 +1,4 @@
-apiVersion: openldap.gpu-ninja.com/v1alpha1
+apiVersion: ldap.gpu-ninja.com/v1alpha1
 kind: LDAPOrganizationalUnit
 metadata:
   name: users

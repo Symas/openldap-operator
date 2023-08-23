@@ -5,10 +5,10 @@ metadata:
     app.kubernetes.io/name: rolebinding
     app.kubernetes.io/instance: leader-election-rolebinding
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: openldap-operator
-    app.kubernetes.io/part-of: openldap-operator
+    app.kubernetes.io/created-by: ldap-operator
+    app.kubernetes.io/part-of: ldap-operator
   name: leader-election-rolebinding
-  namespace: openldap-operator
+  namespace: ldap-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -16,4 +16,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: controller-manager
-  namespace: openldap-operator
+  namespace: ldap-operator

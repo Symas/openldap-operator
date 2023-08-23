@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
+	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/operator-utils/k8sutils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,14 +33,14 @@ import (
 type ClientBuilder interface {
 	WithReader(reader client.Reader) ClientBuilder
 	WithScheme(scheme *runtime.Scheme) ClientBuilder
-	WithDirectory(directory *openldapv1alpha1.LDAPDirectory) ClientBuilder
+	WithDirectory(directory *ldapv1alpha1.LDAPDirectory) ClientBuilder
 	Build(ctx context.Context) (Client, error)
 }
 
 type clientBuilderImpl struct {
 	reader    client.Reader
 	scheme    *runtime.Scheme
-	directory *openldapv1alpha1.LDAPDirectory
+	directory *ldapv1alpha1.LDAPDirectory
 }
 
 func NewClientBuilder() ClientBuilder {
@@ -63,7 +63,7 @@ func (b *clientBuilderImpl) WithScheme(scheme *runtime.Scheme) ClientBuilder {
 	}
 }
 
-func (b *clientBuilderImpl) WithDirectory(directory *openldapv1alpha1.LDAPDirectory) ClientBuilder {
+func (b *clientBuilderImpl) WithDirectory(directory *ldapv1alpha1.LDAPDirectory) ClientBuilder {
 	return &clientBuilderImpl{
 		reader:    b.reader,
 		scheme:    b.scheme,
@@ -95,7 +95,7 @@ func (b *clientBuilderImpl) Build(ctx context.Context) (Client, error) {
 		return nil, fmt.Errorf("failed to construct ca bundle")
 	}
 
-	directoryAddress := fmt.Sprintf("ldaps://%s.%s.svc.%s", b.directory.Name, b.directory.Namespace, k8sutils.GetClusterDomain())
+	directoryAddress := fmt.Sprintf("ldaps://ldap-%s.%s.svc.%s", b.directory.Name, b.directory.Namespace, k8sutils.GetClusterDomain())
 	if b.directory.Spec.AddressOverride != "" {
 		directoryAddress = b.directory.Spec.AddressOverride
 	}

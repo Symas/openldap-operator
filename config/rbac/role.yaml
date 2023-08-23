@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: openldap-manager-role
+  name: ldap-manager-role
 rules:
 - apiGroups:
   - ""
@@ -48,7 +48,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldapdirectories
   verbs:
@@ -60,13 +60,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldapdirectories/finalizers
   verbs:
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldapdirectories/status
   verbs:
@@ -74,7 +74,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldapgroups
   verbs:
@@ -86,13 +86,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldapgroups/finalizers
   verbs:
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldapgroups/status
   verbs:
@@ -100,7 +100,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldaporganizationalunits
   verbs:
@@ -112,13 +112,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldaporganizationalunits/finalizers
   verbs:
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldaporganizationalunits/status
   verbs:
@@ -126,7 +126,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldapusers
   verbs:
@@ -138,13 +138,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldapusers/finalizers
   verbs:
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - ldap.gpu-ninja.com
   resources:
   - ldapusers/status
   verbs:
