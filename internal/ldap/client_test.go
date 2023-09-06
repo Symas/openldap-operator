@@ -25,12 +25,12 @@ import (
 	"strings"
 	"testing"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/ldap"
 	"github.com/gpu-ninja/operator-utils/name"
 	"github.com/gpu-ninja/operator-utils/reference"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	openldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/ldap-operator/internal/ldap"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +40,7 @@ import (
 )
 
 const (
-	image = "ghcr.io/gpu-ninja/openldap-operator/openldap:v0.1.1"
+	image = "ghcr.io/gpu-ninja/openldap-operator/ldap:v0.1.1"
 )
 
 func TestClient(t *testing.T) {

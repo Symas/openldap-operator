@@ -43,6 +43,8 @@ bundle/openldap-operator.yaml: $(KBLD) generate
 
 ifeq ($(shell uname -m),x86_64)
 ARCH = amd64
+else ifeq ($(shell uname -m),arm64)
+ARCH = arm64
 else ifeq ($(shell uname -m),aarch64)
 ARCH = arm64
 else

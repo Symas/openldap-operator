@@ -4,14 +4,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.0
-  name: ldapusers.openldap.gpu-ninja.com
+  name: ldapgroups.openldap.symas.com
 spec:
-  group: openldap.gpu-ninja.com
+  group: openldap.symas.com
   names:
-    kind: LDAPUser
-    listKind: LDAPUserList
-    plural: ldapusers
-    singular: ldapuser
+    kind: LDAPGroup
+    listKind: LDAPGroupList
+    plural: ldapgroups
+    singular: ldapgroup
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -24,7 +24,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: LDAPUser is a LDAP user.
+        description: LDAPGroup is a LDAP group of names.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -40,6 +40,9 @@ spec:
             type: object
           spec:
             properties:
+              description:
+                description: Description is an optional description of this group.
+                type: string
               directoryRef:
                 description: DirectoryRef is a reference to the directory that owns
                   this object.
@@ -50,11 +53,15 @@ spec:
                 required:
                 - name
                 type: object
-              email:
-                description: Email is an optional email address of this user.
-                type: string
+              members:
+                description: Members is a list of distinguished names representing
+                  the members of this group.
+                items:
+                  type: string
+                minItems: 1
+                type: array
               name:
-                description: Name is the full name of this user (commonName).
+                description: Name is the common name for this group.
                 type: string
               parentRef:
                 description: ParentRef is an optional reference to the parent of this
@@ -70,27 +77,10 @@ spec:
                     description: Name is the name of the resource.
                     type: string
                 type: object
-              passwordSecretRef:
-                description: PasswordSecretRef is an optional reference to a secret
-                  containing the password of the user.
-                properties:
-                  name:
-                    description: Name is the name of the secret.
-                    type: string
-                required:
-                - name
-                type: object
-              surname:
-                description: Surname is the surname of this user.
-                type: string
-              username:
-                description: Username is the username (uid) for this user.
-                type: string
             required:
             - directoryRef
+            - members
             - name
-            - surname
-            - username
             type: object
           status:
             description: SimpleStatus is a basic status type that can be reused across

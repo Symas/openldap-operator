@@ -34,9 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/operator-utils/updater"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
+	openldapv1alpha1 "github.com/symas/openldap-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,13 +53,13 @@ import (
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapdirectories,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapdirectories/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapdirectories/finalizers,verbs=update
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldapdirectories,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldapdirectories/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldapdirectories/finalizers,verbs=update
 
 const (
 	// FinalizerName is the name of the finalizer used by controllers
-	FinalizerName = "openldap.gpu-ninja.com/finalizer"
+	FinalizerName = "openldap.symas.com/finalizer"
 	// reconcileRetryInterval is the interval at which the controller will retry
 	// to reconcile a resource
 	reconcileRetryInterval = 5 * time.Second

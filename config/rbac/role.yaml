@@ -48,7 +48,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldapdirectories
   verbs:
@@ -60,13 +60,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldapdirectories/finalizers
   verbs:
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldapdirectories/status
   verbs:
@@ -74,7 +74,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldapgroups
   verbs:
@@ -86,13 +86,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldapgroups/finalizers
   verbs:
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldapgroups/status
   verbs:
@@ -100,7 +100,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldaporganizationalunits
   verbs:
@@ -112,13 +112,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldaporganizationalunits/finalizers
   verbs:
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldaporganizationalunits/status
   verbs:
@@ -126,7 +126,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldapusers
   verbs:
@@ -138,13 +138,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldapusers/finalizers
   verbs:
   - update
 - apiGroups:
-  - openldap.gpu-ninja.com
+  - openldap.symas.com
   resources:
   - ldapusers/status
   verbs:

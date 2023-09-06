@@ -1,0 +1,63 @@
+# Copyright (c) 2021 by Symas Corporation.
+
+dn:
+objectClass: glue
+
+dn: dc=com
+objectClass: organization
+objectClass: dcobject
+dc: com
+o: com
+
+dn: dc=example,dc=com
+objectClass: organization
+objectClass: dcobject
+dc: example
+o: example
+
+dn: ou=admin,dc=example,dc=com
+objectClass: organizationalUnit
+ou: admin
+description: Administrator area
+
+dn: cn=service-user,ou=admin,dc=example,dc=com
+objectClass: top
+objectClass: person
+cn: service-user
+sn: service
+
+dn: ou=people,dc=example,dc=com
+objectClass: organizationalUnit
+ou: People
+description: People container
+
+dn: ou=groups,dc=example,dc=com
+objectClass: organizationalUnit
+ou: Groups
+description: Group container
+
+dn: ou=policies,dc=example,dc=com
+objectClass: organizationalUnit
+ou: Policies
+description: Password Policy container
+
+dn: cn=default,ou=policies,dc=example,dc=com
+objectClass: person
+objectClass: pwdPolicy
+objectClass: pwdPolicyChecker
+objectClass: top
+cn: default
+pwdAttribute: userPassword
+sn: default
+pwdCheckQuality: 2
+pwdExpireWarning: 1728000
+pwdFailureCountInterval: 600
+pwdGraceAuthNLimit: 3
+pwdInHistory: 5
+pwdLockout: TRUE
+pwdLockoutDuration: 300
+pwdMaxAge: 0
+pwdMaxFailure: 5
+pwdMinAge: 0
+pwdMinLength: 2
+pwdMustChange: TRUE

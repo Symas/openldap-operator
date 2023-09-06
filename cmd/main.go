@@ -35,11 +35,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/controller"
-	"github.com/gpu-ninja/openldap-operator/internal/ldap"
-	"github.com/gpu-ninja/openldap-operator/internal/mapper"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
+	openldapv1alpha1 "github.com/symas/openldap-operator/api/v1alpha1"
+	"github.com/symas/openldap-operator/internal/controller"
+	"github.com/symas/openldap-operator/internal/ldap"
+	"github.com/symas/openldap-operator/internal/mapper"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -89,7 +89,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "49e56cbc.gpu-ninja.com",
+		LeaderElectionID:       "49e56cbc.symas.com",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly

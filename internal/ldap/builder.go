@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
+	openldapv1alpha1 "github.com/symas/openldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/operator-utils/k8sutils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"

@@ -1,6 +1,6 @@
-module github.com/gpu-ninja/openldap-operator
+module github.com/symas/openldap-operator
 
-go 1.20
+go 1.19
 
 // Temporary fix for https://github.com/google/gnostic/issues/397
 replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230525220651-2546d827e515

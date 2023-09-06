@@ -2,46 +2,46 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-domain: gpu-ninja.com
+domain: symas.com
 layout:
 - go.kubebuilder.io/v4
 projectName: openldap-operator
-repo: github.com/gpu-ninja/openldap-operator
+repo: github.com/symas/openldap-operator
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: gpu-ninja.com
+  domain: symas.com
   group: openldap
   kind: LDAPDirectory
-  path: github.com/gpu-ninja/openldap-operator/api/v1alpha1
+  path: github.com/symas/openldap-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: gpu-ninja.com
+  domain: symas.com
   group: openldap
   kind: OrganizationalUnit
-  path: github.com/gpu-ninja/openldap-operator/api/v1alpha1
+  path: github.com/symas/openldap-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: gpu-ninja.com
+  domain: symas.com
   group: openldap
   kind: User
-  path: github.com/gpu-ninja/openldap-operator/api/v1alpha1
+  path: github.com/symas/openldap-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: gpu-ninja.com
+  domain: symas.com
   group: openldap
   kind: Group
-  path: github.com/gpu-ninja/openldap-operator/api/v1alpha1
+  path: github.com/symas/openldap-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

@@ -21,9 +21,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gpu-ninja/openldap-operator/api"
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/ldap"
+	"github.com/symas/openldap-operator/api"
+	openldapv1alpha1 "github.com/symas/openldap-operator/api/v1alpha1"
+	"github.com/symas/openldap-operator/internal/ldap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

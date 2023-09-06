@@ -57,7 +57,7 @@ func main() {
 
 	buildContextPath := filepath.Clean(filepath.Join(pwd, ".."))
 
-	imageName := "ghcr.io/gpu-ninja/openldap-operator:latest-dev"
+	imageName := "ghcr.io/symas/openldap-operator:latest-dev"
 	if err := buildOperatorImage(buildContextPath, "Dockerfile", imageName); err != nil {
 		logger.Fatal(red("Failed to build operator image"), zap.Error(err))
 	}
@@ -111,13 +111,13 @@ func main() {
 	}
 
 	userGVR := schema.GroupVersionResource{
-		Group:    "openldap.gpu-ninja.com",
+		Group:    "openldap.symas.com",
 		Version:  "v1alpha1",
 		Resource: "ldapusers",
 	}
 
 	groupGVR := schema.GroupVersionResource{
-		Group:    "openldap.gpu-ninja.com",
+		Group:    "openldap.symas.com",
 		Version:  "v1alpha1",
 		Resource: "ldapgroups",
 	}

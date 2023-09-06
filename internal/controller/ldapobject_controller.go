@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/gpu-ninja/openldap-operator/api"
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/ldap"
-	"github.com/gpu-ninja/openldap-operator/internal/mapper"
 	"github.com/gpu-ninja/operator-utils/updater"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
+	"github.com/symas/openldap-operator/api"
+	openldapv1alpha1 "github.com/symas/openldap-operator/api/v1alpha1"
+	"github.com/symas/openldap-operator/internal/ldap"
+	"github.com/symas/openldap-operator/internal/mapper"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -40,19 +40,19 @@ import (
 )
 
 // LDAPGroups
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapgroups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapgroups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapgroups/finalizers,verbs=update
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldapgroups,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldapgroups/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldapgroups/finalizers,verbs=update
 
 // LDAPOrganizationalUnits
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldaporganizationalunits,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldaporganizationalunits/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldaporganizationalunits/finalizers,verbs=update
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldaporganizationalunits,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldaporganizationalunits/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldaporganizationalunits/finalizers,verbs=update
 
 // LDAPUsers
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapusers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapusers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=openldap.gpu-ninja.com,resources=ldapusers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldapusers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldapusers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=openldap.symas.com,resources=ldapusers/finalizers,verbs=update
 
 type LDAPObjectReconciler[T api.LDAPObject, E ldap.Entry] struct {
 	client.Client

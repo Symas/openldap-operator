@@ -6,7 +6,10 @@ A Kubernetes operator for deploying and managing OpenLDAP directories.
 
 ### Prerequisites
 
-* [kapp](https://carvel.dev/kapp/)
+- [kapp](https://carvel.dev/kapp/)
+- [arkade](https://github.com/alexellis/arkade)
+
+### Setup
 
 ### Installing
 
@@ -19,7 +22,7 @@ kapp deploy -a cert-manager -f https://github.com/cert-manager/cert-manager/rele
 #### Operator
 
 ```shell
-kapp deploy -a openldap-operator -f https://github.com/gpu-ninja/openldap-operator/releases/latest/download/openldap-operator.yaml
+kapp deploy -a openldap-operator -f https://github.com/symas/openldap-operator/releases/latest/download/openldap-operator.yaml
 ```
 
 ### Starting a Directory

@@ -23,13 +23,13 @@ import (
 	"testing"
 	"time"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/openldap-operator/internal/controller"
 	fakeutils "github.com/gpu-ninja/operator-utils/fake"
 	"github.com/gpu-ninja/operator-utils/reference"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	openldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/ldap-operator/internal/controller"
 	"go.uber.org/zap/zaptest"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -64,7 +64,7 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: openldapv1alpha1.LDAPDirectorySpec{
-			Image:        "ghcr.io/gpu-ninja/openldap-operator/openldap:latest",
+			Image:        "ghcr.io/gpu-ninja/openldap-operator/ldap:latest",
 			Domain:       "example.com",
 			Organization: "Acme Widgets Inc.",
 			AdminPasswordSecretRef: reference.LocalSecretReference{

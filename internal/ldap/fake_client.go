@@ -20,7 +20,7 @@ package ldap
 import (
 	"context"
 
-	openldapv1alpha1 "github.com/gpu-ninja/openldap-operator/api/v1alpha1"
+	openldapv1alpha1 "github.com/symas/openldap-operator/api/v1alpha1"
 	"github.com/stretchr/testify/mock"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
