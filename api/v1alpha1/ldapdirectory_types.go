@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/gpu-ninja/operator-utils/reference"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,6 +80,8 @@ type LDAPDirectorySpec struct {
 	// AddressOverride is an optional address that will be used to
 	// access the LDAP directory.
 	AddressOverride string `json:"addressOverride,omitempty"`
+	//  Resources allows specifying the resource requirements for the directory container.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // LDAPDirectoryStatus defines the observed state of the LDAP directory.

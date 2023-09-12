@@ -429,16 +429,7 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 									MountPath: "/etc/ldap/certs",
 								},
 							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("100m"),
-									corev1.ResourceMemory: resource.MustParse("32Mi"),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceCPU:    resource.MustParse("1"),
-									corev1.ResourceMemory: resource.MustParse("256Mi"),
-								},
-							},
+							Resources: directory.Spec.Resources,
 						},
 					},
 					Volumes: []corev1.Volume{
