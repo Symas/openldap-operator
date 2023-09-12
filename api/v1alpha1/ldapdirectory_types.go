@@ -80,7 +80,7 @@ type LDAPDirectorySpec struct {
 	// AddressOverride is an optional address that will be used to
 	// access the LDAP directory.
 	AddressOverride string `json:"addressOverride,omitempty"`
-	//  Resources allows specifying the resource requirements for the directory container.
+	// Resources allows specifying the resource requirements for the directory container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
