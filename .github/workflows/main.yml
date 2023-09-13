@@ -22,7 +22,7 @@ jobs:
       run: earthly +lint
 
     - name: Test
-      run: earthly +test
+      run: earthly -P +test
 
     - name: Build
       run: earthly +docker --VERSION=${{ github.ref_name }}

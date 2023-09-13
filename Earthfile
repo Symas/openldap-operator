@@ -55,7 +55,9 @@ test:
   COPY go.mod go.sum ./
   RUN go mod download
   COPY . .
-  RUN go test -coverprofile=coverage.out -v ./...
+  WITH DOCKER
+    RUN go test -coverprofile=coverage.out -v ./...
+  END
   SAVE ARTIFACT ./coverage.out AS LOCAL coverage.out
 
 tools:
