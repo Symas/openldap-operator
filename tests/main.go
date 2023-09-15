@@ -225,7 +225,7 @@ func installOperator(configDir string) error {
 		return err
 	}
 
-	cmd = exec.Command("kapp", "deploy", "-y", "-a", "virt-disk-operator", "-f", "-")
+	cmd = exec.Command("kapp", "deploy", "-y", "-a", "ldap-operator", "-f", "-")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = bytes.NewReader(patchedYAML)

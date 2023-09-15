@@ -20,6 +20,8 @@ docker:
 bundle:
   FROM +tools
   COPY config ./config
+  COPY hack ./hack
+  ARG VERSION
   RUN ytt --data-value version=${VERSION} -f config -f hack/set-version.yaml | kbld -f - > ldap-operator.yaml
   SAVE ARTIFACT ./ldap-operator.yaml AS LOCAL dist/ldap-operator.yaml
 
