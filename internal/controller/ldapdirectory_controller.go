@@ -305,11 +305,6 @@ func (r *LDAPDirectoryReconciler) markFailed(ctx context.Context, directory *lda
 }
 
 func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LDAPDirectory) (*appsv1.StatefulSet, error) {
-	storageSize, err := resource.ParseQuantity(directory.Spec.Storage.Size)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse requested storage size: %w", err)
-	}
-
 	envVars := []corev1.EnvVar{
 		{
 			Name:  "LDAP_DOMAIN",
@@ -343,6 +338,54 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 			Name:  "LDAP_DEBUG_LEVEL",
 			Value: strconv.Itoa(*directory.Spec.DebugLevel),
 		})
+	}
+
+	volumeClaimTemplates := []corev1.PersistentVolumeClaim{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "config",
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("10Mi"),
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "data",
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("100Mi"),
+					},
+				},
+			},
+		},
+	}
+
+	for _, volumeClaimTemplate := range directory.Spec.VolumeClaimTemplates {
+		var found bool
+		for i, existingVolumeClaimTemplate := range volumeClaimTemplates {
+			if existingVolumeClaimTemplate.Name == volumeClaimTemplate.Name {
+				volumeClaimTemplates[i] = volumeClaimTemplate
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			volumeClaimTemplates = append(volumeClaimTemplates, volumeClaimTemplate)
+		}
 	}
 
 	sts := appsv1.StatefulSet{
@@ -384,11 +427,11 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 							Env: envVars,
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "openldap-config",
+									Name:      "config",
 									MountPath: "/etc/ldap/slapd.d",
 								},
 								{
-									Name:      "openldap-data",
+									Name:      "data",
 									MountPath: "/var/lib/ldap",
 								},
 							},
@@ -417,15 +460,15 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "openldap-config",
+									Name:      "config",
 									MountPath: "/etc/ldap/slapd.d",
 								},
 								{
-									Name:      "openldap-data",
+									Name:      "data",
 									MountPath: "/var/lib/ldap",
 								},
 								{
-									Name:      "openldap-certs",
+									Name:      "certs",
 									MountPath: "/etc/ldap/certs",
 								},
 							},
@@ -434,7 +477,7 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "openldap-certs",
+							Name: "certs",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
 									SecretName:  directory.Spec.CertificateSecretRef.Name,
@@ -445,39 +488,7 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 					},
 				},
 			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "openldap-config",
-					},
-					Spec: corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
-						},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: resource.MustParse("10Mi"),
-							},
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "openldap-data",
-					},
-					Spec: corev1.PersistentVolumeClaimSpec{
-						StorageClassName: directory.Spec.Storage.StorageClassName,
-						AccessModes: []corev1.PersistentVolumeAccessMode{
-							corev1.ReadWriteOnce,
-						},
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceStorage: storageSize,
-							},
-						},
-					},
-				},
-			},
+			VolumeClaimTemplates: volumeClaimTemplates,
 		},
 	}
 

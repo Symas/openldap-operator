@@ -20,7 +20,7 @@ docker:
 bundle:
   FROM +tools
   COPY config ./config
-  RUN kbld -f config > ldap-operator.yaml
+  RUN ytt --data-value version=${VERSION} -f config -f hack/set-version.yaml | kbld -f - > ldap-operator.yaml
   SAVE ARTIFACT ./ldap-operator.yaml AS LOCAL dist/ldap-operator.yaml
 
 ldap-operator:
@@ -35,8 +35,10 @@ ldap-operator:
 generate:
   FROM +tools
   COPY . .
-  RUN controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..." \
-    && controller-gen rbac:roleName=ldap-manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+  RUN controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
+  RUN controller-gen crd:generateEmbeddedObjectMeta=true rbac:roleName=ldap-manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+  SAVE ARTIFACT ./api/zz_generated.deepcopy.go AS LOCAL api/zz_generated.deepcopy.go
+  SAVE ARTIFACT ./api/v1alpha1/zz_generated.deepcopy.go AS LOCAL api/v1alpha1/zz_generated.deepcopy.go
   SAVE ARTIFACT ./config/crd/bases AS LOCAL config/crd/bases
   SAVE ARTIFACT ./config/rbac/role.yaml AS LOCAL config/rbac/role.yaml
 

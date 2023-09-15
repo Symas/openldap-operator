@@ -12,5 +12,12 @@ spec:
     name: admin-password
   certificateSecretRef:
     name: demo-tls
-  storage:
-    size: 100Mi
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi

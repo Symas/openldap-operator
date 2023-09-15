@@ -44,16 +44,6 @@ const (
 	LDAPDirectoryConditionTypeFailed  LDAPDirectoryConditionType = "Failed"
 )
 
-// LDAPDirectoryStorageSpec defines the storage configuration for the LDAP directory.
-type LDAPDirectoryStorageSpec struct {
-	// Size is the size of the persistent volume that will be
-	// used to store the LDAP database.
-	Size string `json:"size"`
-	// StorageClassName is the name of the storage class that will be
-	// used to provision the persistent volume.
-	StorageClassName *string `json:"storageClassName,omitempty"`
-}
-
 // LDAPDirectorySpec defines the desired state of the LDAP directory.
 type LDAPDirectorySpec struct {
 	// Image is the container image that will be used to run the LDAP directory.
@@ -74,13 +64,14 @@ type LDAPDirectorySpec struct {
 	// descriptors that the LDAP directory can open.
 	// See: https://github.com/docker/docker/issues/8231
 	FileDescriptorLimit *int `json:"fileDescriptorLimit,omitempty"`
-	// Storage defines the persistent volume that will be used
-	// to store the LDAP database.
-	Storage LDAPDirectoryStorageSpec `json:"storage"`
 	// AddressOverride is an optional address that will be used to
 	// access the LDAP directory.
 	AddressOverride string `json:"addressOverride,omitempty"`
-	// Resources allows specifying the resource requirements for the directory container.
+	// VolumeClaimTemplates are volume claim templates for the LDAP directory pod.
+	// Two volume claim templates "config" and "data" are recognized. If not specified,
+	// the default volume claim templates will be used.
+	VolumeClaimTemplates []corev1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
+	// Resources are resource requirements for the LDAP directory container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 

@@ -219,13 +219,13 @@ func installCertManager(certManagerVersion string) error {
 }
 
 func installOperator(configDir string) error {
-	cmd := exec.Command("ytt", "-f", "config", "-f", configDir)
+	cmd := exec.Command("ytt", "--data-value", "version=latest-dev", "-f", "../hack/set-version.yaml", "-f", configDir)
 	patchedYAML, err := cmd.CombinedOutput()
 	if err != nil {
 		return err
 	}
 
-	cmd = exec.Command("kapp", "deploy", "-y", "-a", "ldap-operator", "-f", "-")
+	cmd = exec.Command("kapp", "deploy", "-y", "-a", "virt-disk-operator", "-f", "-")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = bytes.NewReader(patchedYAML)
