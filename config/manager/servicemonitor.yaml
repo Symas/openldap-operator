@@ -1,12 +1,15 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: ldap-operator-metrics
+  name: ldap-operator
   namespace: ldap-operator
+  labels:
+    app.kubernetes.io/name: ldap-operator
+    app.kubernetes.io/component: metrics
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: ldap-operator-metrics
+      app.kubernetes.io/name: ldap-operator
       app.kubernetes.io/component: metrics
   endpoints:
   - port: metrics
