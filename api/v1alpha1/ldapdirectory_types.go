@@ -67,9 +67,14 @@ type LDAPDirectorySpec struct {
 	// AddressOverride is an optional address that will be used to
 	// access the LDAP directory.
 	AddressOverride string `json:"addressOverride,omitempty"`
+	// VolumeMounts are volume mounts for the LDAP directory container.
+	// By default the following volume mounts are added (but can be overridden):
+	// config: /etc/ldap/slapd.d
+	// data: /var/lib/ldap
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
 	// VolumeClaimTemplates are volume claim templates for the LDAP directory pod.
-	// Two volume claim templates "config" and "data" are recognized. If not specified,
-	// the default volume claim templates will be used.
+	// A default "config", and "data" volume claim template will be used if not specified
+	// (but can be overridden).
 	VolumeClaimTemplates []corev1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty"`
 	// Resources are resource requirements for the LDAP directory container.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`

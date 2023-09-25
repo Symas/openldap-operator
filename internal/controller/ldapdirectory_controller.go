@@ -340,38 +340,7 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 		})
 	}
 
-	volumeClaimTemplates := []corev1.PersistentVolumeClaim{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "config",
-			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{
-					corev1.ReadWriteOnce,
-				},
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: resource.MustParse("10Mi"),
-					},
-				},
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "data",
-			},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{
-					corev1.ReadWriteOnce,
-				},
-				Resources: corev1.ResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: resource.MustParse("100Mi"),
-					},
-				},
-			},
-		},
-	}
+	volumeClaimTemplates := defaultVolumeClaimTemplates()
 
 	for _, volumeClaimTemplate := range directory.Spec.VolumeClaimTemplates {
 		var found bool
@@ -385,6 +354,36 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 
 		if !found {
 			volumeClaimTemplates = append(volumeClaimTemplates, volumeClaimTemplate)
+		}
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "config",
+			MountPath: "/etc/ldap/slapd.d",
+		},
+		{
+			Name:      "data",
+			MountPath: "/var/lib/ldap",
+		},
+		{
+			Name:      "certs",
+			MountPath: "/etc/ldap/certs",
+		},
+	}
+
+	for _, volumeMount := range directory.Spec.VolumeMounts {
+		var found bool
+		for i, existingVolumeMount := range volumeMounts {
+			if existingVolumeMount.Name == volumeMount.Name {
+				volumeMounts[i] = volumeMount
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			volumeMounts = append(volumeMounts, volumeMount)
 		}
 	}
 
@@ -424,17 +423,8 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 							Command: []string{
 								"/bootstrap.sh",
 							},
-							Env: envVars,
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "config",
-									MountPath: "/etc/ldap/slapd.d",
-								},
-								{
-									Name:      "data",
-									MountPath: "/var/lib/ldap",
-								},
-							},
+							Env:          envVars,
+							VolumeMounts: volumeMounts,
 						},
 					},
 					Containers: []corev1.Container{
@@ -458,21 +448,8 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 								InitialDelaySeconds: 5,
 								PeriodSeconds:       10,
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "config",
-									MountPath: "/etc/ldap/slapd.d",
-								},
-								{
-									Name:      "data",
-									MountPath: "/var/lib/ldap",
-								},
-								{
-									Name:      "certs",
-									MountPath: "/etc/ldap/certs",
-								},
-							},
-							Resources: directory.Spec.Resources,
+							VolumeMounts: volumeMounts,
+							Resources:    directory.Spec.Resources,
 						},
 					},
 					Volumes: []corev1.Volume{
@@ -558,4 +535,39 @@ func (r *LDAPDirectoryReconciler) serviceTemplate(directory *ldapv1alpha1.LDAPDi
 	svc.ObjectMeta.Labels["app.kubernetes.io/managed-by"] = "ldap-operator"
 
 	return &svc, nil
+}
+
+func defaultVolumeClaimTemplates() []corev1.PersistentVolumeClaim {
+	return []corev1.PersistentVolumeClaim{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "config",
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("10Mi"),
+					},
+				},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "data",
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("100Mi"),
+					},
+				},
+			},
+		},
+	}
 }
