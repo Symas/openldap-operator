@@ -24,7 +24,7 @@ kapp deploy -y -a cert-manager -f "https://github.com/cert-manager/cert-manager/
 #### Operator
 
 ```shell
-kapp deploy -a ldap-operator -f https://github.com/gpu-ninja/ldap-operator/releases/latest/download/ldap-operator.yaml
+kapp deploy -y -a ldap-operator -f https://github.com/gpu-ninja/ldap-operator/releases/latest/download/ldap-operator.yaml
 ```
 
 ### Custom Resources
