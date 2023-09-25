@@ -27,13 +27,15 @@ kapp deploy -y -a cert-manager -f "https://github.com/cert-manager/cert-manager/
 kapp deploy -a ldap-operator -f https://github.com/gpu-ninja/ldap-operator/releases/latest/download/ldap-operator.yaml
 ```
 
-### Starting a Directory
+### Custom Resources
+
+#### Start an LDAP Directory
 
 ```shell
 kubectl apply -f examples -l app.kubernetes.io/component=server
 ```
 
-### Managed Resources
+#### Create Managed LDAP Resources
 
 In the examples directory, there are a few examples of managed LDAP resources that can be created by the operator (eg. Organizational Units, Users, Groups, etc).
 
