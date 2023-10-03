@@ -36,7 +36,7 @@ func NewFakeClientBuilder(m *mock.Mock) ClientBuilder {
 	}
 }
 
-func (b *fakeClientBuilder) WithReader(_ client.Reader) ClientBuilder {
+func (b *fakeClientBuilder) WithClient(_ client.Client) ClientBuilder {
 	return b
 }
 

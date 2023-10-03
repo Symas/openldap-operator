@@ -68,9 +68,6 @@ func TestLDAPDirectoryReconciler(t *testing.T) {
 			Image:        "ghcr.io/gpu-ninja/ldap-operator/openldap:latest",
 			Domain:       "example.com",
 			Organization: "Acme Widgets Inc.",
-			AdminPasswordSecretRef: reference.LocalSecretReference{
-				Name: "admin-password",
-			},
 			CertificateSecretRef: reference.LocalSecretReference{
 				Name: "demo-tls",
 			},

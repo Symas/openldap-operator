@@ -118,19 +118,21 @@ func TestClient(t *testing.T) {
 		},
 		Spec: ldapv1alpha1.LDAPDirectorySpec{
 			Domain: "example.com",
-			AdminPasswordSecretRef: reference.LocalSecretReference{
-				Name: "admin-password",
-			},
 			CertificateSecretRef: reference.LocalSecretReference{
 				Name: "directory-cert",
 			},
 		},
 	}
 
-	_ = corev1.AddToScheme(scheme.Scheme)
+	err = corev1.AddToScheme(scheme.Scheme)
+	require.NoError(t, err)
+
+	err = ldapv1alpha1.AddToScheme(scheme.Scheme)
+	require.NoError(t, err)
+
 	client := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(&corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "admin-password",
+			Name:      "ldap-test-admin-password",
 			Namespace: "default",
 		},
 		Data: map[string][]byte{
@@ -155,7 +157,7 @@ func TestClient(t *testing.T) {
 	directory.Spec.AddressOverride = fmt.Sprintf("ldaps://%s", endpoint)
 
 	ldapClient, err := ldap.NewClientBuilder().
-		WithReader(client).
+		WithClient(client).
 		WithScheme(scheme.Scheme).
 		WithDirectory(&directory).
 		Build(ctx)

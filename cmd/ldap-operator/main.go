@@ -40,6 +40,7 @@ import (
 	"github.com/gpu-ninja/ldap-operator/internal/ldap"
 	"github.com/gpu-ninja/ldap-operator/internal/mapper"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -85,8 +86,7 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "49e56cbc.gpu-ninja.com",
@@ -108,7 +108,7 @@ func main() {
 	}
 
 	ldapClientBuilder := ldap.NewClientBuilder().
-		WithReader(mgr.GetAPIReader()).
+		WithClient(mgr.GetClient()).
 		WithScheme(mgr.GetScheme())
 
 	if err = (&controller.LDAPDirectoryReconciler{

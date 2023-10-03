@@ -52,9 +52,6 @@ type LDAPDirectorySpec struct {
 	Domain string `json:"domain"`
 	// Organization is the name of the organization that owns the LDAP directory.
 	Organization string `json:"organization"`
-	// AdminPasswordSecretRef is a reference to a secret that contains the
-	// password for the admin user.
-	AdminPasswordSecretRef reference.LocalSecretReference `json:"adminPasswordSecretRef"`
 	// CertificateSecretRef is a reference to a secret that contains the
 	// TLS certificate and key that will be used to secure the LDAP directory.
 	CertificateSecretRef reference.LocalSecretReference `json:"certificateSecretRef"`
@@ -117,12 +114,7 @@ func (s *LDAPDirectory) GetDistinguishedName(_ context.Context, _ client.Reader,
 }
 
 func (s *LDAPDirectory) ResolveReferences(ctx context.Context, reader client.Reader, scheme *runtime.Scheme) (bool, error) {
-	_, ok, err := s.Spec.AdminPasswordSecretRef.Resolve(ctx, reader, scheme, s)
-	if !ok || err != nil {
-		return ok, err
-	}
-
-	_, ok, err = s.Spec.CertificateSecretRef.Resolve(ctx, reader, scheme, s)
+	_, ok, err := s.Spec.CertificateSecretRef.Resolve(ctx, reader, scheme, s)
 	if !ok || err != nil {
 		return ok, err
 	}

@@ -122,9 +122,6 @@ func TestLDAPObjectReconciler(t *testing.T) {
 		},
 		Spec: ldapv1alpha1.LDAPDirectorySpec{
 			Domain: "example.com",
-			AdminPasswordSecretRef: reference.LocalSecretReference{
-				Name: "admin-password",
-			},
 			CertificateSecretRef: reference.LocalSecretReference{
 				Name: "certificate",
 			},

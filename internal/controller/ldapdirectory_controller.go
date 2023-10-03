@@ -35,10 +35,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
+	"github.com/gpu-ninja/operator-utils/password"
 	"github.com/gpu-ninja/operator-utils/updater"
 	"github.com/gpu-ninja/operator-utils/zaplogr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -47,7 +49,8 @@ import (
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
 // Need to be able to read secrets to get the TLS certificates / passwords, etc.
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// Need to be able to create secrets to store the generated admin password.
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Need to be able to manage statefulsets and services.
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
@@ -58,14 +61,15 @@ import (
 //+kubebuilder:rbac:groups=ldap.gpu-ninja.com,resources=ldapdirectories/finalizers,verbs=update
 
 const (
-	// FinalizerName is the name of the finalizer used by controllers
+	// FinalizerName is the name of the finalizer used by controllers.
 	FinalizerName = "ldap.gpu-ninja.com/finalizer"
+	// adminPasswordLength is the length of the randomly generated admin password.
+	adminPasswordLength = 32
 	// reconcileRetryInterval is the interval at which the controller will retry
-	// to reconcile a resource
+	// to reconcile a resource.
 	reconcileRetryInterval = 5 * time.Second
 )
 
-// LDAPDirectoryReconciler reconciles a LDAPDirectory object
 type LDAPDirectoryReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
@@ -74,8 +78,6 @@ type LDAPDirectoryReconciler struct {
 
 func (r *LDAPDirectoryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := zaplogr.FromContext(ctx)
-
-	logger.Info("Reconciling")
 
 	var directory ldapv1alpha1.LDAPDirectory
 	if err := r.Get(ctx, req.NamespacedName, &directory); err != nil {
@@ -144,6 +146,39 @@ func (r *LDAPDirectoryReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	logger.Info("Creating or updating")
+
+	logger.Info("Creating or updating admin password secret")
+
+	adminPasswordSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("ldap-%s-admin-password", directory.Name),
+			Namespace: directory.Namespace,
+		},
+	}
+
+	// Get the admin password.
+	if err = r.Get(ctx, client.ObjectKeyFromObject(&adminPasswordSecret), &adminPasswordSecret); err != nil {
+		if apierrors.IsNotFound(err) {
+			pw, err := password.Generate(adminPasswordLength)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to generate random admin password: %w", err)
+			}
+
+			adminPasswordSecret.Data = map[string][]byte{
+				"password": []byte(pw),
+			}
+
+			if err := controllerutil.SetControllerReference(&directory, &adminPasswordSecret, r.Scheme); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to set owner reference on admin password secret: %w", err)
+			}
+
+			if err := r.Create(ctx, &adminPasswordSecret); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to create admin password secret: %w", err)
+			}
+		} else {
+			return ctrl.Result{}, fmt.Errorf("failed to get admin password secret: %w", err)
+		}
+	}
 
 	logger.Info("Reconciling statefulset")
 
@@ -319,7 +354,7 @@ func (r *LDAPDirectoryReconciler) statefulSetTemplate(directory *ldapv1alpha1.LD
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: directory.Spec.AdminPasswordSecretRef.Name,
+						Name: fmt.Sprintf("ldap-%s-admin-password", directory.Name),
 					},
 					Key: "password",
 				},

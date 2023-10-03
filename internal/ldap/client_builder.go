@@ -26,19 +26,20 @@ import (
 	ldapv1alpha1 "github.com/gpu-ninja/ldap-operator/api/v1alpha1"
 	"github.com/gpu-ninja/operator-utils/k8sutils"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ClientBuilder interface {
-	WithReader(reader client.Reader) ClientBuilder
+	WithClient(client client.Client) ClientBuilder
 	WithScheme(scheme *runtime.Scheme) ClientBuilder
 	WithDirectory(directory *ldapv1alpha1.LDAPDirectory) ClientBuilder
 	Build(ctx context.Context) (Client, error)
 }
 
 type clientBuilderImpl struct {
-	reader    client.Reader
+	client    client.Client
 	scheme    *runtime.Scheme
 	directory *ldapv1alpha1.LDAPDirectory
 }
@@ -47,9 +48,9 @@ func NewClientBuilder() ClientBuilder {
 	return &clientBuilderImpl{}
 }
 
-func (b *clientBuilderImpl) WithReader(reader client.Reader) ClientBuilder {
+func (b *clientBuilderImpl) WithClient(client client.Client) ClientBuilder {
 	return &clientBuilderImpl{
-		reader:    reader,
+		client:    client,
 		scheme:    b.scheme,
 		directory: b.directory,
 	}
@@ -57,7 +58,7 @@ func (b *clientBuilderImpl) WithReader(reader client.Reader) ClientBuilder {
 
 func (b *clientBuilderImpl) WithScheme(scheme *runtime.Scheme) ClientBuilder {
 	return &clientBuilderImpl{
-		reader:    b.reader,
+		client:    b.client,
 		scheme:    scheme,
 		directory: b.directory,
 	}
@@ -65,25 +66,27 @@ func (b *clientBuilderImpl) WithScheme(scheme *runtime.Scheme) ClientBuilder {
 
 func (b *clientBuilderImpl) WithDirectory(directory *ldapv1alpha1.LDAPDirectory) ClientBuilder {
 	return &clientBuilderImpl{
-		reader:    b.reader,
+		client:    b.client,
 		scheme:    b.scheme,
 		directory: directory,
 	}
 }
 
 func (b *clientBuilderImpl) Build(ctx context.Context) (Client, error) {
-	// Get the admin password.
-	adminPasswordSecret, ok, err := b.directory.Spec.AdminPasswordSecretRef.Resolve(ctx, b.reader, b.scheme, b.directory)
-	if !ok && err == nil {
-		return nil, fmt.Errorf("referenced admin password secret not found")
-	} else if err != nil {
-		return nil, fmt.Errorf("failed to resolve admin password secret reference: %w", err)
+	adminPasswordSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("ldap-%s-admin-password", b.directory.Name),
+			Namespace: b.directory.Namespace,
+		},
 	}
 
-	adminPassword := string(adminPasswordSecret.(*corev1.Secret).Data["password"])
+	// Get the admin password.
+	if err := b.client.Get(ctx, client.ObjectKeyFromObject(&adminPasswordSecret), &adminPasswordSecret); err != nil {
+		return nil, fmt.Errorf("failed to get admin password secret: %w", err)
+	}
 
-	// Get the CA certificate..
-	certificateSecret, ok, err := b.directory.Spec.CertificateSecretRef.Resolve(ctx, b.reader, b.scheme, b.directory)
+	// Get the CA certificate.
+	certificateSecret, ok, err := b.directory.Spec.CertificateSecretRef.Resolve(ctx, b.client, b.scheme, b.directory)
 	if !ok && err == nil {
 		return nil, fmt.Errorf("referenced certificate secret not found")
 	} else if err != nil {
@@ -106,7 +109,7 @@ func (b *clientBuilderImpl) Build(ctx context.Context) (Client, error) {
 		directoryAddress: directoryAddress,
 		caBundle:         caBundle,
 		adminUsername:    "cn=admin," + baseDN,
-		adminPassword:    adminPassword,
+		adminPassword:    string(adminPasswordSecret.Data["password"]),
 		baseDN:           baseDN,
 	}, nil
 }

@@ -8,8 +8,6 @@ spec:
   image: ghcr.io/gpu-ninja/ldap-operator/openldap:latest
   domain: example.com
   organization: "Acme Widgets Inc."
-  adminPasswordSecretRef:
-    name: admin-password
   certificateSecretRef:
     name: demo-tls
   volumeClaimTemplates:
