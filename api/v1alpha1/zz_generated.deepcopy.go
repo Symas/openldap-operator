@@ -23,7 +23,7 @@
 package v1alpha1
 
 import (
-	"github.com/gpu-ninja/operator-utils/reference"
+	"github.com/symas/operator-utils/reference"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )

@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/gpu-ninja/operator-utils/updater"
-	"github.com/gpu-ninja/operator-utils/zaplogr"
+	"github.com/symas/operator-utils/updater"
+	"github.com/symas/operator-utils/zaplogr"
 	"github.com/symas/openldap-operator/api"
 	openldapv1alpha1 "github.com/symas/openldap-operator/api/v1alpha1"
 	"github.com/symas/openldap-operator/internal/ldap"

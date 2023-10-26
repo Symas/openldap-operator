@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gpu-ninja/operator-utils/reference"
+	"github.com/symas/operator-utils/reference"
 	"github.com/symas/openldap-operator/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"

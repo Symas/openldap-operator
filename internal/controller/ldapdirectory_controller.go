@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/gpu-ninja/operator-utils/updater"
-	"github.com/gpu-ninja/operator-utils/zaplogr"
+	"github.com/symas/operator-utils/updater"
+	"github.com/symas/operator-utils/zaplogr"
 	openldapv1alpha1 "github.com/symas/openldap-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

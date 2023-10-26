@@ -103,8 +103,10 @@ github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/
 github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 h1:K6RDEckDVWvDI9JAJYCmNdQXq6neHJOYx3V6jnqNEec=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/gpu-ninja/operator-utils v0.4.3 h1:fG/UxDWLCBrL494ym1O6GIKfUZdlq9Lw6RwX96DUsys=
-github.com/gpu-ninja/operator-utils v0.4.3/go.mod h1:YJqCBFA5e0s+uyNeZauSv8KJJr1TtQ6GNThFz/UDpKc=
+github.com/symas/ldap-operator v0.7.0 h1:qfQadAPbHAmIebjFNs6rtoEwtCpFFzqY+16StzRP1fc=
+github.com/symas/ldap-operator v0.7.0/go.mod h1:B/Fn19WTMzkYCuWT2rJlYSDKLWdyAaZsDRCXGO7Rtx4=
+github.com/symas/operator-utils v0.4.3 h1:fG/UxDWLCBrL494ym1O6GIKfUZdlq9Lw6RwX96DUsys=
+github.com/symas/operator-utils v0.4.3/go.mod h1:YJqCBFA5e0s+uyNeZauSv8KJJr1TtQ6GNThFz/UDpKc=
 github.com/imdario/mergo v0.3.13 h1:lFzP57bqS/wsqKssCGmtLAb8A0wKjLGrve2q3PPVcBk=
 github.com/imdario/mergo v0.3.13/go.mod h1:4lJ1jqUDcsbIECGy0RUJAXNIhg+6ocWgb1ALK2O4oXg=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=

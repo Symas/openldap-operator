@@ -23,9 +23,9 @@ import (
 	"testing"
 	"time"
 
-	fakeutils "github.com/gpu-ninja/operator-utils/fake"
-	"github.com/gpu-ninja/operator-utils/reference"
-	"github.com/gpu-ninja/operator-utils/zaplogr"
+	fakeutils "github.com/symas/operator-utils/fake"
+	"github.com/symas/operator-utils/reference"
+	"github.com/symas/operator-utils/zaplogr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

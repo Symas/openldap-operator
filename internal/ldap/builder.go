@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	openldapv1alpha1 "github.com/symas/openldap-operator/api/v1alpha1"
-	"github.com/gpu-ninja/operator-utils/k8sutils"
+	"github.com/symas/operator-utils/k8sutils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

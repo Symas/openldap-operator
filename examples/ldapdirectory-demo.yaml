@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/component: server
 spec:
-  image: ghcr.io/gpu-ninja/openldap-operator/ldap:latest
+  image: ghcr.io/symas/openldap-operator/ldap:latest
   domain: example.com
   organization: "Acme Widgets Inc."
   adminPasswordSecretRef:
